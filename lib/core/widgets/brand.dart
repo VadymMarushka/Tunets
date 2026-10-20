@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
@@ -32,12 +34,13 @@ class AppLogo extends StatelessWidget {
         gradient: gradient,
       ),
       alignment: Alignment.center,
-      child: FishMark(size: size * 0.66),
+      child: FishMark(size: size * 0.72),
     );
   }
 }
 
-/// The fish glyph of the logo (white body, eye in the tile color).
+/// The logo glyph: a fish caught on a hook, pulled up by the line
+/// (white fish, eye in the tile color).
 class FishMark extends StatelessWidget {
   const FishMark({super.key, required this.size});
 
@@ -45,35 +48,79 @@ class FishMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(size: Size.square(size), painter: _FishPainter());
+    return CustomPaint(size: Size.square(size), painter: _HookedFishPainter());
   }
 }
 
-class _FishPainter extends CustomPainter {
+class _HookedFishPainter extends CustomPainter {
+  /// Fish silhouette in a 48×48 grid, nose on the left, centered at (24, 24).
+  static final _fish = Path()
+    ..moveTo(5, 24.1) // nose
+    ..cubicTo(7.8, 20.3, 12, 18.6, 18, 18.2) // head
+    ..cubicTo(20, 16.8, 21.8, 15.2, 23.5, 14.4) // dorsal fin, leading edge
+    ..cubicTo(25.5, 15.6, 27.3, 17.3, 28.5, 19.1) // dorsal fin, trailing edge
+    ..cubicTo(31, 19.8, 33.3, 20.9, 35.3, 22.1) // back
+    ..cubicTo(37.5, 20, 40, 18, 42.6, 16.4) // upper tail lobe
+    ..cubicTo(41, 19.2, 40, 21.6, 39.7, 24) // tail fork
+    ..cubicTo(40, 26.4, 41, 28.8, 42.6, 31.6)
+    ..cubicTo(40, 30, 37.5, 28, 35.3, 25.9) // lower tail lobe
+    ..cubicTo(34.3, 26.8, 33.2, 27.6, 32, 28.2) // belly
+    ..cubicTo(31.9, 29.2, 31.9, 30.3, 31.8, 31.3) // anal fin
+    ..cubicTo(30.6, 30.6, 29.7, 29.8, 29, 28.9)
+    ..cubicTo(27, 29.6, 24.8, 30, 22.6, 30.1) // belly
+    ..cubicTo(22.4, 31.2, 22.1, 32.2, 21.6, 33) // pelvic fin
+    ..cubicTo(20.4, 31.9, 19.2, 30.8, 18.2, 29.8)
+    ..cubicTo(13, 29.4, 8, 27.6, 5, 24.1) // chin
+    ..close();
+
+  /// The fish is tilted nose-up, as if pulled by the line.
+  static const _tilt = 22 * math.pi / 180;
+
   @override
   void paint(Canvas canvas, Size size) {
-    // Based on the mockup SVG (viewBox 0 0 48 48), with a slimmer, longer
-    // body and a smaller tail.
     canvas.scale(size.width / 48);
-    final body = Path()
-      ..moveTo(5, 24)
-      ..cubicTo(10, 16.5, 23, 14, 34, 19.5)
-      ..lineTo(42, 16)
-      ..lineTo(42, 32)
-      ..lineTo(34, 28.5)
-      ..cubicTo(23, 34, 10, 31.5, 5, 24)
-      ..close();
+
     canvas
-      ..drawPath(body, Paint()..color = Colors.white)
+      ..save()
+      ..translate(25.5, 28)
+      ..rotate(_tilt)
+      ..translate(-24, -24)
+      ..drawPath(_fish, Paint()..color = Colors.white)
       ..drawCircle(
-        const Offset(13.5, 22.5),
-        2.2,
+        const Offset(12, 22.4),
+        1.9,
         Paint()..color = AppLogo.eyeColor,
-      );
+      )
+      ..restore();
+
+    // Fishing line: thin and semi-transparent.
+    canvas.drawLine(
+      const Offset(10, 0),
+      const Offset(10, 16.5),
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.6)
+        ..strokeWidth = 1.1,
+    );
+    // Hook: its bend sits right at the fish's nose.
+    canvas.drawPath(
+      Path()
+        ..moveTo(10, 15.5)
+        ..lineTo(10, 19.1)
+        ..arcToPoint(
+          const Offset(5.6, 19.1),
+          radius: const Radius.circular(2.2),
+        )
+        ..lineTo(5.6, 17.6),
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 1.6,
+    );
   }
 
   @override
-  bool shouldRepaint(_FishPainter oldDelegate) => false;
+  bool shouldRepaint(_HookedFishPainter oldDelegate) => false;
 }
 
 /// Round avatar: a person silhouette, or the user's initial when [initial]
