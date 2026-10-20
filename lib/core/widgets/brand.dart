@@ -4,11 +4,23 @@ import '../theme/app_colors.dart';
 import '../theme/app_icons.dart';
 import '../theme/app_spacing.dart';
 
-/// App logo: fish glyph on a rounded teal tile.
+/// App logo from the design mockup: white fish on a rounded teal tile.
+/// The same drawing is used for the launcher icons (assets/icon).
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key, this.size = 56});
 
   final double size;
+
+  /// Tile background: CSS `linear-gradient(145deg, …)` from the mockup.
+  static const gradient = LinearGradient(
+    begin: Alignment(-0.57, -0.82),
+    end: Alignment(0.57, 0.82),
+    colors: [Color(0xFF12948D), Color(0xFF0B7A75), Color(0xFF075E5A)],
+    stops: [0, 0.6, 1],
+  );
+
+  /// Fish eye color — the tile color shows through.
+  static const eyeColor = Color(0xFF0B7A75);
 
   @override
   Widget build(BuildContext context) {
@@ -16,16 +28,51 @@ class AppLogo extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(size * 0.25),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF14918B), Color(0xFF0B7A75), Color(0xFF05504C)],
-        ),
+        borderRadius: BorderRadius.circular(size * 0.28),
+        gradient: gradient,
       ),
-      child: Icon(AppIcons.fish, color: Colors.white, size: size * 0.55),
+      alignment: Alignment.center,
+      child: FishMark(size: size * 0.66),
     );
   }
+}
+
+/// The fish glyph of the logo (white body, eye in the tile color).
+class FishMark extends StatelessWidget {
+  const FishMark({super.key, required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(size: Size.square(size), painter: _FishPainter());
+  }
+}
+
+class _FishPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Coordinates from the mockup SVG (viewBox 0 0 48 48).
+    canvas.scale(size.width / 48);
+    final body = Path()
+      ..moveTo(6, 24)
+      ..cubicTo(11, 15, 23, 12, 32, 18)
+      ..lineTo(41, 12)
+      ..lineTo(41, 36)
+      ..lineTo(32, 30)
+      ..cubicTo(23, 36, 11, 33, 6, 24)
+      ..close();
+    canvas
+      ..drawPath(body, Paint()..color = Colors.white)
+      ..drawCircle(
+        const Offset(15, 22),
+        2.2,
+        Paint()..color = AppLogo.eyeColor,
+      );
+  }
+
+  @override
+  bool shouldRepaint(_FishPainter oldDelegate) => false;
 }
 
 /// Round avatar: a person silhouette, or the user's initial when [initial]
