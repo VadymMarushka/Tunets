@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:fluent_ui/fluent_ui.dart' as fl;
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
 /// Windows only: stack of InfoBar notifications in the bottom-right corner.
@@ -120,17 +121,17 @@ class _NoticeCard extends StatelessWidget {
         ),
       ),
       child: PhysicalModel(
-        color: Colors.transparent,
+        // Opaque backing: the InfoBar tint itself is semi-transparent, so
+        // page content would show through it.
+        color: AppPalette.of(context).surface,
         elevation: 8,
         borderRadius: BorderRadius.circular(AppRadius.small),
         child: fl.InfoBar(
           title: Text(notice.message),
           severity: notice.severity,
-          isLong: true,
-          action: fl.IconButton(
-            icon: const Icon(fl.FluentIcons.clear, size: 12),
-            onPressed: () => FluentNoticeStack.dismiss(notice.id),
-          ),
+          // `onClose` puts the close button on the right, in line with the
+          // text (unlike `action`, which goes below it).
+          onClose: () => FluentNoticeStack.dismiss(notice.id),
         ),
       ),
     );
