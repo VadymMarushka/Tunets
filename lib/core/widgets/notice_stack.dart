@@ -127,7 +127,9 @@ class _NoticeCard extends StatelessWidget {
         elevation: 8,
         borderRadius: BorderRadius.circular(AppRadius.small),
         child: fl.InfoBar(
-          title: Text(notice.message),
+          // Full-width title pushes the close button to the right edge
+          // (InfoBar otherwise sizes the row to the text).
+          title: SizedBox(width: double.infinity, child: Text(notice.message)),
           severity: notice.severity,
           // `onClose` puts the close button on the right, in line with the
           // text (unlike `action`, which goes below it).
