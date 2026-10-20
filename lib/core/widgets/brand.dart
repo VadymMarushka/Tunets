@@ -149,13 +149,13 @@ class _FishIconPainter extends CustomPainter {
 
   final Color color;
 
-  /// Body with the eye cut out. The eye is a bit larger than on the logo
-  /// so it stays visible at 14–16 px.
+  /// Body with the eye cut out.
   static final _shape = Path.combine(
     PathOperation.difference,
     _fishBody,
     Path()
-      ..addOval(Rect.fromCircle(center: const Offset(12, 22.4), radius: 2.6)),
+      // Small eye, set a bit inward so it does not touch the head outline.
+      ..addOval(Rect.fromCircle(center: const Offset(12.6, 23), radius: 1.8)),
   );
 
   @override

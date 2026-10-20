@@ -34,41 +34,23 @@ class TripCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          AppIcons.calendar,
-                          size: 12,
-                          color: palette.secondaryText,
-                        ),
-                        const SizedBox(width: AppSpacing.xs),
-                        Flexible(
-                          child: Text(
-                            Formatters.tripDateTime(trip.dateTime),
-                            style: AppTextStyles.caption(context),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      trip.waterBody,
-                      style: AppTextStyles.subtitle(context),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+              Icon(AppIcons.calendar, size: 12, color: palette.secondaryText),
+              const SizedBox(width: AppSpacing.xs),
+              Flexible(
+                child: Text(
+                  Formatters.tripDateTime(trip.dateTime),
+                  style: AppTextStyles.caption(context),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              const FishThumbnail(size: 48),
             ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            trip.waterBody,
+            style: AppTextStyles.subtitle(context),
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: AppSpacing.sm),
           WeatherChips(weather: trip.weather),
