@@ -248,9 +248,12 @@ class _LogoPaneToggle extends StatelessWidget {
 
   final double height;
 
-  /// Pane icons are 16 px; the logo tile is slightly larger but stays
-  /// square inside the 50 px compact column.
-  static const _logoSize = 20.0;
+  /// Logo tile size. With the reduced button padding below it still fits
+  /// the 50 px compact column and the 44 px header row.
+  static const _logoSize = 28.0;
+
+  /// Padding around the logo inside the button (default is larger).
+  static const _buttonPadding = 4.0;
 
   /// Puts the logo center on the center line of the "Tunets" title.
   static const _topOffset = 8.0;
@@ -271,6 +274,9 @@ class _LogoPaneToggle extends StatelessWidget {
                 : AppStrings.expandNavigation,
             child: fl.IconButton(
               icon: const AppLogo(size: _logoSize),
+              style: const fl.ButtonStyle(
+                padding: WidgetStatePropertyAll(EdgeInsets.all(_buttonPadding)),
+              ),
               onPressed: view.togglePane,
             ),
           ),
