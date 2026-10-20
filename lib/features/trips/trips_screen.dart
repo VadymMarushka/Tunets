@@ -211,7 +211,8 @@ class _DetailsPane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: pagePadding().copyWith(left: 0),
+      // Gap between the list scrollbar and the details.
+      padding: pagePadding().copyWith(left: AppSpacing.l),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

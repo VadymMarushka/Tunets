@@ -224,7 +224,9 @@ class _AppShellState extends State<AppShell> {
         ],
         footerItems: [
           fl.PaneItemAction(
-            icon: UserAvatar(size: 20, initial: user.initial),
+            // Same size as the pane icons, so it does not shrink when the
+            // pane collapses to the narrow icon column.
+            icon: const UserAvatar(size: 14),
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -250,20 +252,34 @@ class _AppShellState extends State<AppShell> {
 class _LogoPaneToggle extends StatelessWidget {
   const _LogoPaneToggle();
 
+  /// Pane items draw 16 px icons; the logo tile is a bit larger but must
+  /// stay square inside the 50 px compact column.
+  static const _logoSize = 20.0;
+
+  /// Matches the height of the pane header row so the logo and the
+  /// "Tunets" title share one center line.
+  static const _height = 44.0;
+
   @override
   Widget build(BuildContext context) {
     final view = fl.NavigationView.of(context);
-    return Container(
+    return SizedBox(
       width: fl.kCompactNavigationPaneWidth,
-      height: fl.kPaneItemMinHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: fl.Tooltip(
-        message: view.isPaneOpen
-            ? AppStrings.collapseNavigation
-            : AppStrings.expandNavigation,
-        child: fl.IconButton(
-          icon: const AppLogo(size: 24),
-          onPressed: view.togglePane,
+      height: _height,
+      // Fluent draws the pane header 3 px below the toggle center
+      // (header padding), so the logo is nudged down to line up with it.
+      child: Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Center(
+          child: fl.Tooltip(
+            message: view.isPaneOpen
+                ? AppStrings.collapseNavigation
+                : AppStrings.expandNavigation,
+            child: fl.IconButton(
+              icon: const AppLogo(size: _logoSize),
+              onPressed: view.togglePane,
+            ),
+          ),
         ),
       ),
     );
