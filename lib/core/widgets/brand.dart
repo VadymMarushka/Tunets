@@ -34,7 +34,7 @@ class AppLogo extends StatelessWidget {
         gradient: gradient,
       ),
       alignment: Alignment.center,
-      child: FishMark(size: size * 0.72),
+      child: FishMark(size: size * 0.9),
     );
   }
 }
