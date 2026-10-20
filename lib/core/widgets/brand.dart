@@ -52,20 +52,21 @@ class FishMark extends StatelessWidget {
 class _FishPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // Coordinates from the mockup SVG (viewBox 0 0 48 48).
+    // Based on the mockup SVG (viewBox 0 0 48 48), with a slimmer, longer
+    // body and a smaller tail.
     canvas.scale(size.width / 48);
     final body = Path()
-      ..moveTo(6, 24)
-      ..cubicTo(11, 15, 23, 12, 32, 18)
-      ..lineTo(41, 12)
-      ..lineTo(41, 36)
-      ..lineTo(32, 30)
-      ..cubicTo(23, 36, 11, 33, 6, 24)
+      ..moveTo(5, 24)
+      ..cubicTo(10, 16.5, 23, 14, 34, 19.5)
+      ..lineTo(42, 16)
+      ..lineTo(42, 32)
+      ..lineTo(34, 28.5)
+      ..cubicTo(23, 34, 10, 31.5, 5, 24)
       ..close();
     canvas
       ..drawPath(body, Paint()..color = Colors.white)
       ..drawCircle(
-        const Offset(15, 22),
+        const Offset(13.5, 22.5),
         2.2,
         Paint()..color = AppLogo.eyeColor,
       );
