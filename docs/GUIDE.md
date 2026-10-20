@@ -133,7 +133,7 @@ lib/
 | `InfoChip`, `WeatherChips`, `SyncBadge` | [info_chips.dart](../lib/core/widgets/info_chips.dart) | спільні | спільні | картки, деталі |
 | `StatRow`, `StatCard` | [stat_tile.dart](../lib/core/widgets/stat_tile.dart) | спільні | спільні | Summary, погода |
 | `SectionHeader`, `EmptyState`, `AppDivider` | [section_header.dart](../lib/core/widgets/section_header.dart) | спільні | спільні | заголовки, порожні списки |
-| `AppLogo`, `UserAvatar`, `FishThumbnail`, `TripPhoto` | [brand.dart](../lib/core/widgets/brand.dart) | спільні | спільні | лого, аватар, мініатюри |
+| `AppLogo`, `FishMark`, `FishIcon`, `UserAvatar`, `FishThumbnail`, `TripPhoto` | [brand.dart](../lib/core/widgets/brand.dart) | спільні | спільні | лого (рибка на гачку), іконка рибки для уловів, аватар, мініатюри |
 
 «Спільні» віджети не мають окремих версій — вони зібрані з базових Flutter-віджетів
 (`Container`, `Row`, `Text`…) і однаково виглядають на обох платформах.
