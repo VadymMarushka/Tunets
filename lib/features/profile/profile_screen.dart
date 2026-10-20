@@ -1,3 +1,7 @@
+// PLATFORM-SPECIFIC CODE: this file contains both Android and Windows variants.
+// Blocks are marked with "Android (Material 3)" / "Windows (Fluent)" comments.
+// In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
+
 import 'package:flutter/material.dart';
 
 import '../../app/app_routes.dart';
@@ -60,6 +64,7 @@ class ProfileScreen extends StatelessWidget {
                         const SizedBox(height: AppSpacing.l),
                         password,
                         if (!PlatformStyle.isFluent) ...[
+                          // Android (Material 3) only
                           const SizedBox(height: AppSpacing.l),
                           AppButton.danger(
                             label: AppStrings.signOut,

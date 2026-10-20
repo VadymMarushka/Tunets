@@ -32,5 +32,12 @@ FluentThemeData buildFluentTheme(Brightness brightness) {
     micaBackgroundColor: p.mica.first,
     cardColor: p.surface,
     menuColor: p.surface,
+    // Pane uses the brand "mica" tint instead of the neutral Windows gray,
+    // so it matches the window backdrop of the auth screens.
+    navigationPaneTheme: NavigationPaneThemeData(
+      backgroundColor: p.mica.first,
+      overlayBackgroundColor: p.mica.first,
+      highlightColor: p.primary,
+    ),
   );
 }

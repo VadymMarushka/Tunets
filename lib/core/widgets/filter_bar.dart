@@ -1,3 +1,7 @@
+// PLATFORM-SPECIFIC CODE: this file contains both Android and Windows variants.
+// Blocks are marked with "Android (Material 3)" / "Windows (Fluent)" comments.
+// In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
+
 import 'package:fluent_ui/fluent_ui.dart' as fl;
 import 'package:flutter/material.dart';
 
@@ -25,7 +29,8 @@ class FilterBar extends StatelessWidget {
       runSpacing: AppSpacing.s,
       children: [
         for (var i = 0; i < labels.length; i++)
-          if (PlatformStyle.isFluent)
+          if (PlatformStyle
+              .isFluent) // Windows (Fluent); else Android (Material 3)
             fl.ToggleButton(
               checked: i == selectedIndex,
               onChanged: (_) => onSelected(i),
@@ -57,6 +62,7 @@ class AppSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ----- Windows (Fluent); the Android (Material 3) version follows -----
     if (PlatformStyle.isFluent) {
       return fl.TextBox(
         placeholder: hint,

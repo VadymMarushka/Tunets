@@ -1,3 +1,7 @@
+// PLATFORM-SPECIFIC CODE: this file contains both Android and Windows variants.
+// Blocks are marked with "Android (Material 3)" / "Windows (Fluent)" comments.
+// In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
+
 import 'package:fluent_ui/fluent_ui.dart' as fl;
 import 'package:flutter/material.dart';
 
@@ -70,6 +74,8 @@ class AppButton extends StatelessWidget {
     return expand ? SizedBox(width: double.infinity, child: button) : button;
   }
 
+  // ===== Android (Material 3) =====
+
   Widget _buildMaterial(BuildContext context) {
     final palette = AppPalette.of(context);
     final iconWidget = icon == null ? null : Icon(icon, size: 18);
@@ -106,6 +112,8 @@ class AppButton extends StatelessWidget {
               );
     }
   }
+
+  // ===== Windows (Fluent) =====
 
   Widget _buildFluent(BuildContext context) {
     final palette = AppPalette.of(context);
@@ -157,6 +165,7 @@ class AppIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ----- Windows (Fluent); the Android (Material 3) version follows -----
     if (PlatformStyle.isFluent) {
       return fl.Tooltip(
         message: tooltip,

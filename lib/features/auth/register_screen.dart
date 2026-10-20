@@ -1,3 +1,7 @@
+// PLATFORM-SPECIFIC CODE: this file contains both Android and Windows variants.
+// Blocks are marked with "Android (Material 3)" / "Windows (Fluent)" comments.
+// In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
+
 import 'package:flutter/material.dart';
 
 import '../../app/app_routes.dart';
@@ -25,6 +29,7 @@ class RegisterScreen extends StatelessWidget {
         Row(
           children: [
             if (!PlatformStyle.isFluent) ...[
+              // Android (Material 3) only
               const AppLogo(size: 40),
               const SizedBox(width: AppSpacing.sm),
             ],

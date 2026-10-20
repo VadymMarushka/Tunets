@@ -1,3 +1,7 @@
+// PLATFORM-SPECIFIC CODE: this file contains both Android and Windows variants.
+// Blocks are marked with "Android (Material 3)" / "Windows (Fluent)" comments.
+// In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
+
 import 'package:flutter/material.dart';
 
 import '../../app/app_routes.dart';
@@ -31,6 +35,7 @@ class SignInScreen extends StatelessWidget {
     return AuthLayout(
       children: [
         if (isFluent) ...[
+          // Windows (Fluent) only
           Text(AppStrings.signIn, style: AppTextStyles.title(context)),
           Text(AppStrings.tagline, style: AppTextStyles.caption(context)),
         ] else ...[

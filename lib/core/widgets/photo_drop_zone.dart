@@ -1,3 +1,7 @@
+// PLATFORM-SPECIFIC CODE: this file contains both Android and Windows variants.
+// Blocks are marked with "Android (Material 3)" / "Windows (Fluent)" comments.
+// In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
+
 import 'package:fluent_ui/fluent_ui.dart' as fl;
 import 'package:flutter/material.dart';
 
@@ -40,6 +44,7 @@ class PhotoDropZone extends StatelessWidget {
             TextSpan(
               children: [
                 if (isFluent) ...[
+                  // Windows (Fluent) only
                   const TextSpan(text: AppStrings.browseFilesPrefix),
                   TextSpan(
                     text: AppStrings.browseFiles,
@@ -66,6 +71,7 @@ class PhotoDropZone extends StatelessWidget {
       border: Border.all(color: palette.outline),
     );
 
+    // ----- Windows (Fluent); the Android (Material 3) version follows -----
     if (isFluent) {
       return fl.HoverButton(
         onPressed: () => showPhotoSourcePicker(context),

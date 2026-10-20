@@ -1,3 +1,7 @@
+// PLATFORM-SPECIFIC CODE: this file contains both Android and Windows variants.
+// Blocks are marked with "Android (Material 3)" / "Windows (Fluent)" comments.
+// In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
+
 import 'package:fluent_ui/fluent_ui.dart' as fl;
 import 'package:flutter/material.dart';
 
@@ -31,6 +35,8 @@ class AppCard extends StatelessWidget {
         : _buildMaterial(context);
   }
 
+  // ===== Android (Material 3) =====
+
   Widget _buildMaterial(BuildContext context) {
     final palette = AppPalette.of(context);
     final radius = BorderRadius.circular(AppRadius.material);
@@ -49,6 +55,8 @@ class AppCard extends StatelessWidget {
       ),
     );
   }
+
+  // ===== Windows (Fluent) =====
 
   Widget _buildFluent(BuildContext context) {
     final palette = AppPalette.of(context);

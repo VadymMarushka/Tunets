@@ -1,3 +1,7 @@
+// PLATFORM-SPECIFIC CODE: this file contains both Android and Windows variants.
+// Blocks are marked with "Android (Material 3)" / "Windows (Fluent)" comments.
+// In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
+
 import 'package:fluent_ui/fluent_ui.dart' as fl;
 import 'package:flutter/material.dart';
 
@@ -15,6 +19,7 @@ class TunetsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ----- Windows (Fluent); the Android (Material 3) version follows -----
     if (PlatformStyle.isFluent) {
       return fl.FluentApp(
         title: AppStrings.appName,

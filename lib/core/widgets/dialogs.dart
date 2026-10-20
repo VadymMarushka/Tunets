@@ -1,3 +1,7 @@
+// PLATFORM-SPECIFIC CODE: this file contains both Android and Windows variants.
+// Blocks are marked with "Android (Material 3)" / "Windows (Fluent)" comments.
+// In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
+
 import 'package:fluent_ui/fluent_ui.dart' as fl;
 import 'package:flutter/material.dart';
 
@@ -18,6 +22,7 @@ Future<bool> showConfirmDialog(
   final palette = AppPalette.of(context);
   final bool? result;
 
+  // ----- Windows (Fluent); the Android (Material 3) version follows -----
   if (PlatformStyle.isFluent) {
     result = await fl.showDialog<bool>(
       context: context,
@@ -77,6 +82,7 @@ void showNotice(
   String message, {
   NoticeKind kind = NoticeKind.success,
 }) {
+  // ----- Windows (Fluent); the Android (Material 3) version follows -----
   if (PlatformStyle.isFluent) {
     fl.displayInfoBar(
       context,
@@ -107,6 +113,7 @@ Future<void> showPhotoSourcePicker(
   BuildContext context, {
   bool canRemove = false,
 }) async {
+  // ----- Windows (Fluent); the Android (Material 3) version follows -----
   if (PlatformStyle.isFluent) {
     showNotice(context, AppStrings.photoNotAvailable, kind: NoticeKind.info);
     return;

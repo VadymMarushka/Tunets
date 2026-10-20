@@ -9,6 +9,8 @@ abstract final class AppStrings {
   static const navTrips = 'Trips';
   static const navProfile = 'Profile';
   static const back = 'Back';
+  static const expandNavigation = 'Expand navigation';
+  static const collapseNavigation = 'Collapse navigation';
   static const showPassword = 'Show password';
   static const hidePassword = 'Hide password';
 

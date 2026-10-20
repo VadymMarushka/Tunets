@@ -1,9 +1,12 @@
+// PLATFORM-SPECIFIC CODE: this file contains both Android and Windows variants.
+// Blocks are marked with "Android (Material 3)" / "Windows (Fluent)" comments.
+// In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
+
 import 'package:fluent_ui/fluent_ui.dart' as fl;
 import 'package:flutter/material.dart';
 
 import '../core/platform/platform_style.dart';
 import '../core/strings/app_strings.dart';
-import '../core/theme/app_colors.dart';
 import '../core/theme/app_icons.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_text_styles.dart';
@@ -56,6 +59,24 @@ class _AppShellState extends State<AppShell> {
     for (final tab in AppTab.values) tab: GlobalKey<NavigatorState>(),
   };
 
+  /// Windows only: gives access to the Fluent pane to open it on start.
+  final _paneKey = GlobalKey<fl.NavigationViewState>();
+
+  @override
+  void initState() {
+    super.initState();
+    // ----- Windows (Fluent); the Android (Material 3) version follows -----
+    if (PlatformStyle.isFluent) {
+      // Wide window: start with the labeled pane, narrow: icons only.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (MediaQuery.sizeOf(context).width >= Breakpoints.expanded) {
+          _paneKey.currentState?.openPane();
+        }
+      });
+    }
+  }
+
   void _selectTab(AppTab tab) {
     if (tab == _tab) {
       // Re-selecting the current section returns to its first page.
@@ -93,6 +114,9 @@ class _AppShellState extends State<AppShell> {
     );
   }
 
+  // ===== Android (Material 3) =====
+
+  /// Bottom navigation bar on phones, navigation rail on wide screens.
   Widget _buildMaterial(BuildContext context) {
     final body = IndexedStack(
       index: _tab.index,
@@ -168,8 +192,12 @@ class _AppShellState extends State<AppShell> {
     );
   }
 
+  // ===== Windows (Fluent) =====
+
+  /// Fluent pane: always at least a column of icons (compact mode).
+  /// The logo button toggles between icons only and icons with labels;
+  /// wide windows start with the labels visible.
   Widget _buildFluent(BuildContext context) {
-    final palette = AppPalette.of(context);
     const user = MockData.user;
 
     fl.PaneItem item(AppTab tab, IconData icon, String title) => fl.PaneItem(
@@ -178,54 +206,64 @@ class _AppShellState extends State<AppShell> {
       body: _sectionNavigator(tab),
     );
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: palette.mica,
+    return fl.NavigationView(
+      key: _paneKey,
+      pane: fl.NavigationPane(
+        selected: _tab.index,
+        onChanged: (index) => _selectTab(AppTab.values[index]),
+        displayMode: fl.PaneDisplayMode.compact,
+        toggleButton: const _LogoPaneToggle(),
+        header: Text(
+          AppStrings.appName,
+          style: AppTextStyles.bodyStrong(context),
         ),
-      ),
-      child: fl.NavigationView(
-        pane: fl.NavigationPane(
-          selected: _tab.index,
-          onChanged: (index) => _selectTab(AppTab.values[index]),
-          displayMode: fl.PaneDisplayMode.auto,
-          compactModeThresholdWidth: Breakpoints.compact,
-          expandedModeThresholdWidth: Breakpoints.expanded,
-          header: Row(
-            children: [
-              const AppLogo(size: 24),
-              const SizedBox(width: AppSpacing.s),
-              Text(
-                AppStrings.appName,
-                style: AppTextStyles.bodyStrong(context),
-              ),
-            ],
-          ),
-          items: [
-            item(AppTab.home, AppIcons.home, AppStrings.navHome),
-            item(AppTab.trips, AppIcons.trips, AppStrings.navTrips),
-            item(AppTab.profile, AppIcons.profile, AppStrings.navProfile),
-          ],
-          footerItems: [
-            fl.PaneItemAction(
-              icon: UserAvatar(size: 20, initial: user.initial),
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(user.name, overflow: TextOverflow.ellipsis),
-                  Text(
-                    user.email,
-                    style: AppTextStyles.caption(context),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-              onTap: () => _selectTab(AppTab.profile),
+        items: [
+          item(AppTab.home, AppIcons.home, AppStrings.navHome),
+          item(AppTab.trips, AppIcons.trips, AppStrings.navTrips),
+          item(AppTab.profile, AppIcons.profile, AppStrings.navProfile),
+        ],
+        footerItems: [
+          fl.PaneItemAction(
+            icon: UserAvatar(size: 20, initial: user.initial),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(user.name, overflow: TextOverflow.ellipsis),
+                Text(
+                  user.email,
+                  style: AppTextStyles.caption(context),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-          ],
+            onTap: () => _selectTab(AppTab.profile),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Windows only: the app logo used as the pane toggle (instead of the
+/// standard "hamburger" button). Same size as the Fluent pane items.
+class _LogoPaneToggle extends StatelessWidget {
+  const _LogoPaneToggle();
+
+  @override
+  Widget build(BuildContext context) {
+    final view = fl.NavigationView.of(context);
+    return Container(
+      width: fl.kCompactNavigationPaneWidth,
+      height: fl.kPaneItemMinHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: fl.Tooltip(
+        message: view.isPaneOpen
+            ? AppStrings.collapseNavigation
+            : AppStrings.expandNavigation,
+        child: fl.IconButton(
+          icon: const AppLogo(size: 24),
+          onPressed: view.togglePane,
         ),
       ),
     );
