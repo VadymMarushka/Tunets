@@ -9,6 +9,7 @@ import '../platform/platform_style.dart';
 import '../strings/app_strings.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_icons.dart';
+import 'notice_stack.dart';
 
 /// Confirmation for destructive actions: Material dialog on Android,
 /// ContentDialog on Windows. Returns `true` when the user confirms.
@@ -84,22 +85,15 @@ void showNotice(
 }) {
   // ----- Windows (Fluent); the Android (Material 3) version follows -----
   if (PlatformStyle.isFluent) {
-    fl.displayInfoBar(
+    // Bottom-right column of up to 3 notifications (see notice_stack.dart).
+    FluentNoticeStack.show(
       context,
-      // Bottom-right corner, like Windows toast notifications.
-      alignment: Alignment.bottomRight,
-      builder: (context, close) => fl.InfoBar(
-        title: Text(message),
-        severity: switch (kind) {
-          NoticeKind.info => fl.InfoBarSeverity.info,
-          NoticeKind.success => fl.InfoBarSeverity.success,
-          NoticeKind.error => fl.InfoBarSeverity.error,
-        },
-        action: fl.IconButton(
-          icon: const Icon(fl.FluentIcons.clear, size: 12),
-          onPressed: close,
-        ),
-      ),
+      message,
+      severity: switch (kind) {
+        NoticeKind.info => fl.InfoBarSeverity.info,
+        NoticeKind.success => fl.InfoBarSeverity.success,
+        NoticeKind.error => fl.InfoBarSeverity.error,
+      },
     );
     return;
   }

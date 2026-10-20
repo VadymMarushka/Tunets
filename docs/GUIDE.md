@@ -127,6 +127,7 @@ lib/
 | `AppDateField`, `AppTimeField` | [app_pickers.dart](../lib/core/widgets/app_pickers.dart) | системні `showDatePicker` / `showTimePicker` | `fl.DatePicker` / `fl.TimePicker` | форма виїзду |
 | `FilterBar`, `AppSearchField` | [filter_bar.dart](../lib/core/widgets/filter_bar.dart) | `FilterChip`, `SearchBar` | `fl.ToggleButton`, `fl.TextBox` | список виїздів |
 | `showConfirmDialog`, `showNotice`, `showPhotoSourcePicker` | [dialogs.dart](../lib/core/widgets/dialogs.dart) | `AlertDialog`, `SnackBar`, bottom sheet | `fl.ContentDialog`, `fl.InfoBar` | видалення, «збережено», фото |
+| `FluentNoticeStack` | [notice_stack.dart](../lib/core/widgets/notice_stack.dart) | — (на Android один `SnackBar`) | стовпчик до 3 `fl.InfoBar` знизу справа | викликається з `showNotice` |
 | `PhotoDropZone` | [photo_drop_zone.dart](../lib/core/widgets/photo_drop_zone.dart) | плитка «Add photo» | зона «Drag a photo here» | улов у формі |
 | `TripCard` | [trip_card.dart](../lib/core/widgets/trip_card.dart) | спільний | спільний | головний, список |
 | `InfoChip`, `WeatherChips`, `SyncBadge` | [info_chips.dart](../lib/core/widgets/info_chips.dart) | спільні | спільні | картки, деталі |
@@ -169,7 +170,9 @@ lib/
 Користувач унизу панелі — `_UserPaneFooter` (власний елемент замість `PaneItem`,
 бо Fluent обмежує іконки згорнутої панелі до 14 px). Висота заголовка панелі
 однакова в обох режимах (`_paneHeaderHeight`), тому пункти не «стрибають».
-Сповіщення (`showNotice`) на Windows з'являються знизу справа.
+Сповіщення (`showNotice`) на Windows з'являються знизу справа стовпчиком до 3 штук
+([notice_stack.dart](../lib/core/widgets/notice_stack.dart)): нове — знизу, найстаріше зникає,
+кожне закривається саме через 4 с.
 
 ---
 

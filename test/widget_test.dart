@@ -146,6 +146,18 @@ void main() {
         // S-8 Profile
         await tapText(tester, 'Profile');
         expect(find.text('Update password'), findsOneWidget);
+
+        // Notifications stack up to 3 in the corner and close by themselves.
+        for (var i = 0; i < 4; i++) {
+          await tester.tap(
+            find.widgetWithText(fl.FilledButton, 'Save changes'),
+          );
+          await tester.pump(const Duration(milliseconds: 300));
+        }
+        expect(find.byType(fl.InfoBar), findsNWidgets(3));
+        await tester.pump(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+        expect(find.byType(fl.InfoBar), findsNothing);
       });
     });
 
