@@ -37,6 +37,8 @@ ThemeData buildMaterialTheme(Brightness brightness) {
   );
 
   return ThemeData(
+    // Android UI font (LR2). Set explicitly so button styles inherit it too.
+    fontFamily: 'Roboto',
     useMaterial3: true,
     brightness: brightness,
     colorScheme: scheme,
@@ -83,7 +85,6 @@ ThemeData buildMaterialTheme(Brightness brightness) {
       style: FilledButton.styleFrom(
         minimumSize: const Size(64, AppSizes.minTouchTarget),
         shape: const StadiumBorder(),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -91,13 +92,11 @@ ThemeData buildMaterialTheme(Brightness brightness) {
         minimumSize: const Size(64, AppSizes.minTouchTarget),
         shape: const StadiumBorder(),
         side: BorderSide(color: p.outline),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         minimumSize: const Size(48, AppSizes.minTouchTarget),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600),
       ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(

@@ -27,6 +27,8 @@ FluentThemeData buildFluentTheme(Brightness brightness) {
   return FluentThemeData(
     brightness: brightness,
     accentColor: brandAccent,
+    // Windows UI font (LR2). Set explicitly so it is the same everywhere.
+    fontFamily: 'Segoe UI',
     visualDensity: VisualDensity.standard,
     scaffoldBackgroundColor: p.background,
     micaBackgroundColor: p.mica.first,
