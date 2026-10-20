@@ -1,0 +1,36 @@
+import 'package:fluent_ui/fluent_ui.dart';
+
+import 'app_colors.dart';
+
+/// Brand accent (sea teal) expressed as a Fluent accent swatch.
+///
+/// Fluent paints controls with the `dark` shade in the light theme and the
+/// `lighter` shade in the dark theme, so those two match the mockup's
+/// primary colors exactly.
+final AccentColor brandAccent = AccentColor.swatch(const <String, Color>{
+  'darkest': Color(0xFF05504C),
+  'darker': Color(0xFF086561),
+  'dark': Color(0xFF0B7A75),
+  'normal': Color(0xFF14918B),
+  'light': Color(0xFF3DB3AB),
+  'lighter': Color(0xFF6FD6CE),
+  'lightest': Color(0xFF9FE6E0),
+});
+
+/// Fluent Design theme for Windows.
+///
+/// Deliberate deviation (documented in LR2): the brand palette replaces the
+/// standard Windows accent colors so both platforms look like one product.
+FluentThemeData buildFluentTheme(Brightness brightness) {
+  final p = AppPalette.forBrightness(brightness);
+
+  return FluentThemeData(
+    brightness: brightness,
+    accentColor: brandAccent,
+    visualDensity: VisualDensity.standard,
+    scaffoldBackgroundColor: p.background,
+    micaBackgroundColor: p.mica.first,
+    cardColor: p.surface,
+    menuColor: p.surface,
+  );
+}
