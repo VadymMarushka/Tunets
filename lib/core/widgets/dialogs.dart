@@ -86,6 +86,8 @@ void showNotice(
   if (PlatformStyle.isFluent) {
     fl.displayInfoBar(
       context,
+      // Bottom-right corner, like Windows toast notifications.
+      alignment: Alignment.bottomRight,
       builder: (context, close) => fl.InfoBar(
         title: Text(message),
         severity: switch (kind) {

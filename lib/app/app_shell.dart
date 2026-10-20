@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../core/platform/platform_style.dart';
 import '../core/strings/app_strings.dart';
+import '../core/theme/app_colors.dart';
 import '../core/theme/app_icons.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_text_styles.dart';
@@ -194,12 +195,14 @@ class _AppShellState extends State<AppShell> {
 
   // ===== Windows (Fluent) =====
 
+  /// Height of the pane header (logo + "Tunets"). Used for both the open
+  /// and the compact pane so the items do not jump when it collapses.
+  static const _paneHeaderHeight = 50.0;
+
   /// Fluent pane: always at least a column of icons (compact mode).
   /// The logo button toggles between icons only and icons with labels;
   /// wide windows start with the labels visible.
   Widget _buildFluent(BuildContext context) {
-    const user = MockData.user;
-
     fl.PaneItem item(AppTab tab, IconData icon, String title) => fl.PaneItem(
       icon: Icon(icon),
       title: Text(title),
@@ -212,7 +215,8 @@ class _AppShellState extends State<AppShell> {
         selected: _tab.index,
         onChanged: (index) => _selectTab(AppTab.values[index]),
         displayMode: fl.PaneDisplayMode.compact,
-        toggleButton: const _LogoPaneToggle(),
+        size: const fl.NavigationPaneSize(headerHeight: _paneHeaderHeight),
+        toggleButton: const _LogoPaneToggle(height: _paneHeaderHeight),
         header: Text(
           AppStrings.appName,
           style: AppTextStyles.bodyStrong(context),
@@ -223,23 +227,9 @@ class _AppShellState extends State<AppShell> {
           item(AppTab.profile, AppIcons.profile, AppStrings.navProfile),
         ],
         footerItems: [
-          fl.PaneItemAction(
-            // Same size as the pane icons, so it does not shrink when the
-            // pane collapses to the narrow icon column.
-            icon: const UserAvatar(size: 14),
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(user.name, overflow: TextOverflow.ellipsis),
-                Text(
-                  user.email,
-                  style: AppTextStyles.caption(context),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-            onTap: () => _selectTab(AppTab.profile),
+          fl.PaneItemWidgetAdapter(
+            applyPadding: false,
+            child: _UserPaneFooter(onTap: () => _selectTab(AppTab.profile)),
           ),
         ],
       ),
@@ -248,29 +238,33 @@ class _AppShellState extends State<AppShell> {
 }
 
 /// Windows only: the app logo used as the pane toggle (instead of the
-/// standard "hamburger" button). Same size as the Fluent pane items.
+/// standard "hamburger" button).
+///
+/// The logo is pinned to the top of the box, so it stays at the same spot
+/// whether Fluent gives the toggle the full height (compact pane) or a bit
+/// less (open pane, where the header row also holds the title).
 class _LogoPaneToggle extends StatelessWidget {
-  const _LogoPaneToggle();
+  const _LogoPaneToggle({required this.height});
 
-  /// Pane items draw 16 px icons; the logo tile is a bit larger but must
-  /// stay square inside the 50 px compact column.
+  final double height;
+
+  /// Pane icons are 16 px; the logo tile is slightly larger but stays
+  /// square inside the 50 px compact column.
   static const _logoSize = 20.0;
 
-  /// Matches the height of the pane header row so the logo and the
-  /// "Tunets" title share one center line.
-  static const _height = 44.0;
+  /// Puts the logo center on the center line of the "Tunets" title.
+  static const _topOffset = 8.0;
 
   @override
   Widget build(BuildContext context) {
     final view = fl.NavigationView.of(context);
     return SizedBox(
       width: fl.kCompactNavigationPaneWidth,
-      height: _height,
-      // Fluent draws the pane header 3 px below the toggle center
-      // (header padding), so the logo is nudged down to line up with it.
-      child: Padding(
-        padding: const EdgeInsets.only(top: 6),
-        child: Center(
+      height: height,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Padding(
+          padding: const EdgeInsets.only(top: _topOffset),
           child: fl.Tooltip(
             message: view.isPaneOpen
                 ? AppStrings.collapseNavigation
@@ -282,6 +276,77 @@ class _LogoPaneToggle extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Windows only: signed-in user at the bottom of the pane.
+///
+/// A custom pane entry instead of a regular PaneItem: Fluent limits item
+/// icons to 14 px in the compact pane, which is too small for an avatar.
+/// Shows the avatar alone when the pane is collapsed, avatar + name + email
+/// when it is open. Opens the profile on click.
+class _UserPaneFooter extends StatelessWidget {
+  const _UserPaneFooter({required this.onTap});
+
+  final VoidCallback onTap;
+
+  static const _avatarSize = 28.0;
+
+  /// Horizontal inset that centers the avatar on the pane icon column.
+  static const _inset = (fl.kCompactNavigationPaneWidth - _avatarSize) / 2;
+
+  @override
+  Widget build(BuildContext context) {
+    const user = MockData.user;
+    final palette = AppPalette.of(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final open = constraints.maxWidth > fl.kCompactNavigationPaneWidth * 2;
+        final content = fl.HoverButton(
+          onPressed: onTap,
+          cursor: SystemMouseCursors.click,
+          semanticLabel: AppStrings.navProfile,
+          builder: (context, states) => Container(
+            height: 52,
+            margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+            padding: EdgeInsets.symmetric(horizontal: _inset - 4),
+            decoration: BoxDecoration(
+              color: states.isHovered ? palette.subtleHover : null,
+              borderRadius: BorderRadius.circular(AppRadius.small),
+            ),
+            child: Row(
+              children: [
+                UserAvatar(size: _avatarSize, initial: user.initial),
+                if (open) ...[
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(user.name, overflow: TextOverflow.ellipsis),
+                        Text(
+                          user.email,
+                          style: AppTextStyles.caption(context),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: open
+              ? content
+              : fl.Tooltip(message: user.name, child: content),
+        );
+      },
     );
   }
 }
