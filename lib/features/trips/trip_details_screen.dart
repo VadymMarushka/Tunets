@@ -219,7 +219,7 @@ class _Overview extends StatelessWidget {
             ),
           ),
           InfoChip(
-            icon: AppIcons.fish,
+            icon: const FishIcon(),
             label: AppStrings.fishCount(trip.fishCount),
             highlighted: true,
           ),
@@ -288,7 +288,7 @@ class _TackleSection extends StatelessWidget {
           runSpacing: AppSpacing.s,
           children: [
             for (final item in tackle)
-              InfoChip(icon: AppIcons.tackle, label: item),
+              InfoChip(icon: const Icon(AppIcons.tackle), label: item),
           ],
         ),
       ],

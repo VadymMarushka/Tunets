@@ -75,7 +75,7 @@ class TripCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.s),
           Row(
             children: [
-              Icon(AppIcons.fish, size: 16, color: palette.primary),
+              FishIcon(size: 20, color: palette.primary),
               const SizedBox(width: AppSpacing.s),
               Expanded(
                 child: Text(

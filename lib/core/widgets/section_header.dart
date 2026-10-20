@@ -41,7 +41,8 @@ class EmptyState extends StatelessWidget {
     this.action,
   });
 
-  final IconData icon;
+  /// Usually an [Icon] or a fish icon; size and color are set here.
+  final Widget icon;
   final String title;
   final String message;
   final Widget? action;
@@ -54,7 +55,13 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 48, color: AppTextStyles.caption(context).color),
+            IconTheme.merge(
+              data: IconThemeData(
+                size: 48,
+                color: AppTextStyles.caption(context).color,
+              ),
+              child: icon,
+            ),
             const SizedBox(height: AppSpacing.m),
             Text(title, style: AppTextStyles.title(context)),
             const SizedBox(height: AppSpacing.xs),

@@ -12,6 +12,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_page.dart';
+import '../../core/widgets/brand.dart';
 import '../../core/widgets/filter_bar.dart';
 import '../../core/widgets/section_header.dart';
 import '../../core/widgets/trip_card.dart';
@@ -85,7 +86,7 @@ class _TripsScreenState extends State<TripsScreen> {
               Expanded(
                 child: selected == null
                     ? const EmptyState(
-                        icon: Icons.touch_app_outlined,
+                        icon: Icon(Icons.touch_app_outlined),
                         title: AppStrings.tripDetails,
                         message: AppStrings.selectTripHint,
                       )
@@ -183,13 +184,13 @@ class _EmptyTrips extends StatelessWidget {
   Widget build(BuildContext context) {
     if (filtered) {
       return EmptyState(
-        icon: AppIcons.search,
+        icon: Icon(AppIcons.search),
         title: AppStrings.noMatchingTrips,
         message: AppStrings.noMatchingTripsMessage,
       );
     }
     return EmptyState(
-      icon: AppIcons.fish,
+      icon: const FishIcon(),
       title: AppStrings.noTripsYet,
       message: AppStrings.noTripsYetMessage,
       action: AppButton(

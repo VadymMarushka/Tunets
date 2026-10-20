@@ -60,7 +60,6 @@ abstract final class AppIcons {
   static IconData get waterBody =>
       _pick(Icons.water_outlined, fl.FluentIcons.globe);
 
-  static const IconData fish = Icons.set_meal_outlined;
   static const IconData tackle = Icons.phishing;
   static const IconData temperature = Icons.device_thermostat;
   static const IconData pressure = Icons.speed;

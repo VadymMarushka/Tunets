@@ -23,7 +23,9 @@ class InfoChip extends StatelessWidget {
   });
 
   final String label;
-  final IconData? icon;
+
+  /// Usually an [Icon] or [FishIcon]; size and color are set by the chip.
+  final Widget? icon;
 
   /// Accent background (e.g. fish count badge).
   final bool highlighted;
@@ -51,10 +53,12 @@ class InfoChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(
-              icon,
-              size: 14,
-              color: highlighted ? foreground : palette.primary,
+            IconTheme.merge(
+              data: IconThemeData(
+                size: 14,
+                color: highlighted ? foreground : palette.primary,
+              ),
+              child: icon!,
             ),
             const SizedBox(width: AppSpacing.xs),
           ],
@@ -102,9 +106,15 @@ class WeatherChips extends StatelessWidget {
       spacing: AppSpacing.s,
       runSpacing: AppSpacing.xs,
       children: [
-        InfoChip(icon: AppIcons.temperature, label: weather.temperatureLabel),
-        InfoChip(icon: AppIcons.pressure, label: weather.pressureLabel),
-        InfoChip(icon: AppIcons.wind, label: weather.windLabel),
+        InfoChip(
+          icon: const Icon(AppIcons.temperature),
+          label: weather.temperatureLabel,
+        ),
+        InfoChip(
+          icon: const Icon(AppIcons.pressure),
+          label: weather.pressureLabel,
+        ),
+        InfoChip(icon: const Icon(AppIcons.wind), label: weather.windLabel),
       ],
     );
   }

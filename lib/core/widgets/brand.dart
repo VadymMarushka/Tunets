@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
-import '../theme/app_icons.dart';
 import '../theme/app_spacing.dart';
 
 /// App logo from the design mockup: white fish on a rounded teal tile.
@@ -39,6 +38,27 @@ class AppLogo extends StatelessWidget {
   }
 }
 
+/// Fish silhouette in a 48×48 grid, nose on the left, centered at (24, 24).
+/// Shared by the logo ([FishMark]) and the fish icon ([FishIcon]).
+final Path _fishBody = Path()
+  ..moveTo(5, 24.1) // nose
+  ..cubicTo(7.8, 20.3, 12, 18.6, 18, 18.2) // head
+  ..cubicTo(20, 16.8, 21.8, 15.2, 23.5, 14.4) // dorsal fin, leading edge
+  ..cubicTo(25.5, 15.6, 27.3, 17.3, 28.5, 19.1) // dorsal fin, trailing edge
+  ..cubicTo(31, 19.8, 33.3, 20.9, 35.3, 22.1) // back
+  ..cubicTo(37.5, 20, 40, 18, 42.6, 16.4) // upper tail lobe
+  ..cubicTo(41, 19.2, 40, 21.6, 39.7, 24) // tail fork
+  ..cubicTo(40, 26.4, 41, 28.8, 42.6, 31.6)
+  ..cubicTo(40, 30, 37.5, 28, 35.3, 25.9) // lower tail lobe
+  ..cubicTo(34.3, 26.8, 33.2, 27.6, 32, 28.2) // belly
+  ..cubicTo(31.9, 29.2, 31.9, 30.3, 31.8, 31.3) // anal fin
+  ..cubicTo(30.6, 30.6, 29.7, 29.8, 29, 28.9)
+  ..cubicTo(27, 29.6, 24.8, 30, 22.6, 30.1) // belly
+  ..cubicTo(22.4, 31.2, 22.1, 32.2, 21.6, 33) // pelvic fin
+  ..cubicTo(20.4, 31.9, 19.2, 30.8, 18.2, 29.8)
+  ..cubicTo(13, 29.4, 8, 27.6, 5, 24.1) // chin
+  ..close();
+
 /// The logo glyph: a fish caught on a hook, pulled up by the line
 /// (white fish, eye in the tile color).
 class FishMark extends StatelessWidget {
@@ -53,26 +73,6 @@ class FishMark extends StatelessWidget {
 }
 
 class _HookedFishPainter extends CustomPainter {
-  /// Fish silhouette in a 48×48 grid, nose on the left, centered at (24, 24).
-  static final _fish = Path()
-    ..moveTo(5, 24.1) // nose
-    ..cubicTo(7.8, 20.3, 12, 18.6, 18, 18.2) // head
-    ..cubicTo(20, 16.8, 21.8, 15.2, 23.5, 14.4) // dorsal fin, leading edge
-    ..cubicTo(25.5, 15.6, 27.3, 17.3, 28.5, 19.1) // dorsal fin, trailing edge
-    ..cubicTo(31, 19.8, 33.3, 20.9, 35.3, 22.1) // back
-    ..cubicTo(37.5, 20, 40, 18, 42.6, 16.4) // upper tail lobe
-    ..cubicTo(41, 19.2, 40, 21.6, 39.7, 24) // tail fork
-    ..cubicTo(40, 26.4, 41, 28.8, 42.6, 31.6)
-    ..cubicTo(40, 30, 37.5, 28, 35.3, 25.9) // lower tail lobe
-    ..cubicTo(34.3, 26.8, 33.2, 27.6, 32, 28.2) // belly
-    ..cubicTo(31.9, 29.2, 31.9, 30.3, 31.8, 31.3) // anal fin
-    ..cubicTo(30.6, 30.6, 29.7, 29.8, 29, 28.9)
-    ..cubicTo(27, 29.6, 24.8, 30, 22.6, 30.1) // belly
-    ..cubicTo(22.4, 31.2, 22.1, 32.2, 21.6, 33) // pelvic fin
-    ..cubicTo(20.4, 31.9, 19.2, 30.8, 18.2, 29.8)
-    ..cubicTo(13, 29.4, 8, 27.6, 5, 24.1) // chin
-    ..close();
-
   /// The fish is tilted nose-up, as if pulled by the line.
   static const _tilt = 22 * math.pi / 180;
 
@@ -85,7 +85,7 @@ class _HookedFishPainter extends CustomPainter {
       ..translate(25.5, 28)
       ..rotate(_tilt)
       ..translate(-24, -24)
-      ..drawPath(_fish, Paint()..color = Colors.white)
+      ..drawPath(_fishBody, Paint()..color = Colors.white)
       ..drawCircle(
         const Offset(12, 22.4),
         1.9,
@@ -121,6 +121,56 @@ class _HookedFishPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_HookedFishPainter oldDelegate) => false;
+}
+
+/// The app's fish symbol as an icon (the logo fish without the hook),
+/// used for catches. Behaves like [Icon]: size and color come from the
+/// surrounding [IconTheme] unless given. The eye is cut out, so it works on
+/// any background.
+class FishIcon extends StatelessWidget {
+  const FishIcon({super.key, this.size, this.color});
+
+  final double? size;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = IconTheme.of(context);
+    final iconSize = size ?? theme.size ?? 24;
+    return CustomPaint(
+      size: Size.square(iconSize),
+      painter: _FishIconPainter(color ?? theme.color ?? Colors.black),
+    );
+  }
+}
+
+class _FishIconPainter extends CustomPainter {
+  _FishIconPainter(this.color);
+
+  final Color color;
+
+  /// Body with the eye cut out. The eye is a bit larger than on the logo
+  /// so it stays visible at 14–16 px.
+  static final _shape = Path.combine(
+    PathOperation.difference,
+    _fishBody,
+    Path()
+      ..addOval(Rect.fromCircle(center: const Offset(12, 22.4), radius: 2.6)),
+  );
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // The fish is long and flat (x 5…42.6 of the 48 grid), so the icon uses
+    // a tighter 40-unit box around it — otherwise it looks tiny next to text.
+    canvas
+      ..scale(size.width / 40)
+      ..translate(-4, -4)
+      ..drawPath(_shape, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_FishIconPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 /// Round avatar: a person silhouette, or the user's initial when [initial]
@@ -181,7 +231,8 @@ class FishThumbnail extends StatelessWidget {
           colors: [palette.primaryContainer, palette.surfaceVariant],
         ),
       ),
-      child: Icon(AppIcons.fish, size: size * 0.55, color: palette.primary),
+      alignment: Alignment.center,
+      child: FishIcon(size: size * 0.7, color: palette.primary),
     );
   }
 }

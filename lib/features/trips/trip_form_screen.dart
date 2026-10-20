@@ -254,7 +254,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
         children: [
           for (final item in _tackle)
             InfoChip(
-              icon: AppIcons.tackle,
+              icon: const Icon(AppIcons.tackle),
               label: item,
               onDeleted: () => setState(() => _tackle.remove(item)),
             ),
