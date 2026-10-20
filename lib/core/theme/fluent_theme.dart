@@ -34,6 +34,13 @@ FluentThemeData buildFluentTheme(Brightness brightness) {
     menuColor: p.surface,
     // Pane uses the brand "mica" tint instead of the neutral Windows gray,
     // so it matches the window backdrop of the auth screens.
+    // Subtle scrollbars: translucent thumb instead of the solid gray one,
+    // barely visible track on hover.
+    scrollbarTheme: ScrollbarThemeData(
+      scrollbarColor: p.onSurface.withValues(alpha: 0.25),
+      scrollbarPressingColor: p.onSurface.withValues(alpha: 0.45),
+      backgroundColor: p.subtleHover,
+    ),
     navigationPaneTheme: NavigationPaneThemeData(
       backgroundColor: p.mica.first,
       overlayBackgroundColor: p.mica.first,

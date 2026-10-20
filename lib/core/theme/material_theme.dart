@@ -127,5 +127,13 @@ ThemeData buildMaterialTheme(Brightness brightness) {
           : const Color(0xFFE2EEEC),
     ),
     dividerTheme: DividerThemeData(color: p.outline, space: 1),
+    // Same subtle, translucent scrollbar thumb as on Windows.
+    scrollbarTheme: ScrollbarThemeData(
+      thumbColor: WidgetStateProperty.resolveWith(
+        (states) => p.onSurface.withValues(
+          alpha: states.contains(WidgetState.dragged) ? 0.45 : 0.25,
+        ),
+      ),
+    ),
   );
 }
