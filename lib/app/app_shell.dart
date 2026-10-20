@@ -250,13 +250,13 @@ class _LogoPaneToggle extends StatelessWidget {
 
   /// Logo tile size. With the reduced button padding below it still fits
   /// the 50 px compact column and the 44 px header row.
-  static const _logoSize = 28.0;
+  static const _logoSize = 24.0;
 
   /// Padding around the logo inside the button (default is larger).
   static const _buttonPadding = 4.0;
 
   /// Puts the logo center on the center line of the "Tunets" title.
-  static const _topOffset = 8.0;
+  static const _topOffset = 10.0;
 
   @override
   Widget build(BuildContext context) {
