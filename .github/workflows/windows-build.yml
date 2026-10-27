@@ -21,6 +21,14 @@ jobs:
       - run: flutter pub get
       - run: flutter build windows --release
 
+      # Ship the MSVC runtime next to the exe so it runs on PCs without vc_redist.
+      - name: Bundle MSVC runtime DLLs
+        shell: pwsh
+        run: |
+          foreach ($dll in 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll') {
+            Copy-Item "$env:WINDIR\System32\$dll" build/windows/x64/runner/Release/
+          }
+
       - uses: actions/upload-artifact@v4
         with:
           name: fishing_diary-windows
