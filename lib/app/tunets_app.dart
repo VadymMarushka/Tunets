@@ -9,7 +9,7 @@ import '../core/platform/platform_style.dart';
 import '../core/strings/app_strings.dart';
 import '../core/theme/fluent_theme.dart';
 import '../core/theme/material_theme.dart';
-import '../features/auth/sign_in_screen.dart';
+import 'auth_gate.dart';
 
 /// Root widget. One code base, two design languages:
 /// [MaterialApp] (Material 3) on Android, [fl.FluentApp] on Windows.
@@ -33,7 +33,11 @@ class TunetsApp extends StatelessWidget {
           DefaultMaterialLocalizations.delegate,
           fl.FluentLocalizations.delegate,
         ],
-        home: const SignInScreen(),
+        // The interface is English only (LR2); without this FluentApp
+        // advertises every Fluent locale, e.g. uk, which the Material
+        // delegate can't serve (a framework error on Ukrainian Windows).
+        supportedLocales: const [Locale('en')],
+        home: const AuthGate(),
       );
     }
     return MaterialApp(
@@ -42,7 +46,7 @@ class TunetsApp extends StatelessWidget {
       theme: buildMaterialTheme(Brightness.light),
       darkTheme: buildMaterialTheme(Brightness.dark),
       themeMode: ThemeMode.system,
-      home: const SignInScreen(),
+      home: const AuthGate(),
     );
   }
 }

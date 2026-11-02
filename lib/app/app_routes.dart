@@ -26,9 +26,11 @@ extension AppNavigation on BuildContext {
     rootNavigator: !PlatformStyle.isFluent,
   ).push<T>(appRoute((_) => page));
 
-  /// Replaces the whole stack with [page] (sign in / sign out).
-  void resetTo(Widget page) => Navigator.of(
+  /// Closes every page above the root (`AuthGate`). Used after sign in,
+  /// registration and sign out: the gate then shows the right screen
+  /// for the new auth state.
+  void returnToRoot() => Navigator.of(
     this,
     rootNavigator: true,
-  ).pushAndRemoveUntil(appRoute((_) => page), (_) => false);
+  ).popUntil((route) => route.isFirst);
 }

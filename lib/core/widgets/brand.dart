@@ -173,16 +173,34 @@ class _FishIconPainter extends CustomPainter {
       oldDelegate.color != color;
 }
 
-/// Round avatar: a person silhouette, or the user's initial when [initial]
-/// is set (compact header avatar).
+/// Round avatar: the profile photo from [photoUrl] when set; otherwise the
+/// user's initial ([initial]) or a person silhouette. The placeholder also
+/// shows while the photo loads or if it fails to load.
 class UserAvatar extends StatelessWidget {
-  const UserAvatar({super.key, this.size = 96, this.initial});
+  const UserAvatar({super.key, this.size = 96, this.initial, this.photoUrl});
 
   final double size;
   final String? initial;
+  final String? photoUrl;
 
   @override
   Widget build(BuildContext context) {
+    final url = photoUrl;
+    if (url == null || url.isEmpty) return _placeholder(context);
+    return ClipOval(
+      child: Image.network(
+        url,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, progress) =>
+            progress == null ? child : _placeholder(context),
+        errorBuilder: (context, error, stack) => _placeholder(context),
+      ),
+    );
+  }
+
+  Widget _placeholder(BuildContext context) {
     final palette = AppPalette.of(context);
     return Container(
       width: size,

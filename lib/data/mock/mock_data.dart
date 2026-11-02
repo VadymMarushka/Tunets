@@ -1,11 +1,9 @@
 import '../models/catch_entry.dart';
 import '../models/trip.dart';
-import '../models/user_profile.dart';
 
-/// Hardcoded data for the UI prototype (no backend in this lab).
+/// Hardcoded trips for the UI until cloud storage (Firestore) is added.
+/// The user comes from Firebase Authentication since LR4.
 abstract final class MockData {
-  static const user = UserProfile(name: 'Vadym', email: 'vadym@example.com');
-
   /// "Today" for the prototype, so filters and the summary match the mockup.
   static final today = DateTime(2026, 9, 29, 6, 30);
 

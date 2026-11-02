@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../platform/platform_style.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import 'progress.dart';
 
 enum AppButtonVariant {
   /// Main action of a screen (filled, accent color).
@@ -32,6 +33,7 @@ class AppButton extends StatelessWidget {
     this.icon,
     this.variant = AppButtonVariant.primary,
     this.expand = false,
+    this.loading = false,
   });
 
   const AppButton.secondary({
@@ -40,6 +42,7 @@ class AppButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.expand = false,
+    this.loading = false,
   }) : variant = AppButtonVariant.secondary;
 
   const AppButton.text({
@@ -48,6 +51,7 @@ class AppButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.expand = false,
+    this.loading = false,
   }) : variant = AppButtonVariant.text;
 
   const AppButton.danger({
@@ -56,6 +60,7 @@ class AppButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.expand = false,
+    this.loading = false,
   }) : variant = AppButtonVariant.danger;
 
   final String label;
@@ -65,6 +70,12 @@ class AppButton extends StatelessWidget {
 
   /// Stretch to the full available width.
   final bool expand;
+
+  /// Request in progress: shows a spinner and ignores taps, so the same
+  /// request can't be sent twice.
+  final bool loading;
+
+  VoidCallback? get _onPressed => loading ? null : onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -78,22 +89,26 @@ class AppButton extends StatelessWidget {
 
   Widget _buildMaterial(BuildContext context) {
     final palette = AppPalette.of(context);
-    final iconWidget = icon == null ? null : Icon(icon, size: 18);
+    final iconWidget = loading
+        ? const AppProgressIndicator(size: 16)
+        : icon == null
+        ? null
+        : Icon(icon, size: 18);
     final text = Text(label);
     switch (variant) {
       case AppButtonVariant.primary:
         return iconWidget == null
-            ? FilledButton(onPressed: onPressed, child: text)
+            ? FilledButton(onPressed: _onPressed, child: text)
             : FilledButton.icon(
-                onPressed: onPressed,
+                onPressed: _onPressed,
                 icon: iconWidget,
                 label: text,
               );
       case AppButtonVariant.secondary:
         return iconWidget == null
-            ? OutlinedButton(onPressed: onPressed, child: text)
+            ? OutlinedButton(onPressed: _onPressed, child: text)
             : OutlinedButton.icon(
-                onPressed: onPressed,
+                onPressed: _onPressed,
                 icon: iconWidget,
                 label: text,
               );
@@ -103,9 +118,9 @@ class AppButton extends StatelessWidget {
             ? TextButton.styleFrom(foregroundColor: palette.error)
             : null;
         return iconWidget == null
-            ? TextButton(onPressed: onPressed, style: style, child: text)
+            ? TextButton(onPressed: _onPressed, style: style, child: text)
             : TextButton.icon(
-                onPressed: onPressed,
+                onPressed: _onPressed,
                 style: style,
                 icon: iconWidget,
                 label: text,
@@ -118,7 +133,17 @@ class AppButton extends StatelessWidget {
   Widget _buildFluent(BuildContext context) {
     final palette = AppPalette.of(context);
     final color = variant == AppButtonVariant.danger ? palette.error : null;
-    final Widget child = icon == null
+    final Widget child = loading
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const AppProgressIndicator(size: 14),
+              const SizedBox(width: AppSpacing.s),
+              Text(label),
+            ],
+          )
+        : icon == null
         ? Text(label)
         : Row(
             mainAxisSize: MainAxisSize.min,
@@ -131,14 +156,14 @@ class AppButton extends StatelessWidget {
           );
     switch (variant) {
       case AppButtonVariant.primary:
-        return fl.FilledButton(onPressed: onPressed, child: child);
+        return fl.FilledButton(onPressed: _onPressed, child: child);
       case AppButtonVariant.secondary:
-        return fl.Button(onPressed: onPressed, child: child);
+        return fl.Button(onPressed: _onPressed, child: child);
       case AppButtonVariant.text:
-        return fl.HyperlinkButton(onPressed: onPressed, child: child);
+        return fl.HyperlinkButton(onPressed: _onPressed, child: child);
       case AppButtonVariant.danger:
         return fl.Button(
-          onPressed: onPressed,
+          onPressed: _onPressed,
           style: const fl.ButtonStyle(
             backgroundColor: WidgetStatePropertyAll(Colors.transparent),
           ),
