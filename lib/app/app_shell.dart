@@ -12,11 +12,11 @@ import '../core/theme/app_icons.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_text_styles.dart';
 import '../core/widgets/brand.dart';
-import '../data/mock/mock_data.dart';
 import '../features/home/home_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/trips/trips_screen.dart';
 import 'app_routes.dart';
+import 'app_services.dart';
 
 /// Main sections available after sign-in.
 enum AppTab { home, trips, profile }
@@ -66,6 +66,7 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
+    _logScreen(_tab);
     // ----- Windows (Fluent); the Android (Material 3) version follows -----
     if (PlatformStyle.isFluent) {
       // Wide window: start with the labeled pane, narrow: icons only.
@@ -85,7 +86,12 @@ class _AppShellState extends State<AppShell> {
       return;
     }
     setState(() => _tab = tab);
+    _logScreen(tab);
   }
+
+  /// Screen views for analytics: one per section switch (home, trips...).
+  void _logScreen(AppTab tab) =>
+      AppServices.of(context).analytics.logScreen(tab.name);
 
   Widget _rootPage(AppTab tab) => switch (tab) {
     AppTab.home => const HomeScreen(),
@@ -304,7 +310,7 @@ class _UserPaneFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const user = MockData.user;
+    final user = CurrentUser.of(context);
     final palette = AppPalette.of(context);
 
     return LayoutBuilder(
@@ -324,7 +330,11 @@ class _UserPaneFooter extends StatelessWidget {
             ),
             child: Row(
               children: [
-                UserAvatar(size: _avatarSize, initial: user.initial),
+                UserAvatar(
+                  size: _avatarSize,
+                  initial: user.initial,
+                  photoUrl: user.photoUrl,
+                ),
                 if (open) ...[
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(

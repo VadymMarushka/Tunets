@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/app_routes.dart';
+import '../../app/app_services.dart';
 import '../../app/app_shell.dart';
 import '../../core/platform/platform_style.dart';
 import '../../core/strings/app_strings.dart';
@@ -42,7 +43,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFluent = PlatformStyle.isFluent;
-    final user = MockData.user;
+    final user = CurrentUser.of(context);
     final recent = MockData.trips.take(_recentCount).toList();
     final addTrip = PageAction(
       label: AppStrings.addTrip,
@@ -60,7 +61,17 @@ class HomeScreen extends StatelessWidget {
           Text(AppStrings.appName, style: AppTextStyles.title(context)),
         ],
       ),
-      materialTrailing: UserAvatar(size: 32, initial: user.initial),
+      // Tapping the avatar opens the Profile tab.
+      materialTrailing: IconButton(
+        tooltip: AppStrings.navProfile,
+        onPressed: () =>
+            AppShellScope.maybeOf(context)?.selectTab(AppTab.profile),
+        icon: UserAvatar(
+          size: 32,
+          initial: user.initial,
+          photoUrl: user.photoUrl,
+        ),
+      ),
       fluentHeaderExtra: const SyncBadge(),
       floatingAction: addTrip,
       body: LayoutBuilder(

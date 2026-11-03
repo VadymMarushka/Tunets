@@ -52,6 +52,8 @@ abstract final class AppIcons {
       _pick(Icons.photo_camera_outlined, fl.FluentIcons.camera);
   static IconData get gallery =>
       _pick(Icons.photo_library_outlined, fl.FluentIcons.photo_collection);
+  static IconData get upload =>
+      _pick(Icons.upload_outlined, fl.FluentIcons.upload);
   static IconData get signOut => _pick(Icons.logout, fl.FluentIcons.sign_out);
   static IconData get notes =>
       _pick(Icons.notes_outlined, fl.FluentIcons.quick_note);

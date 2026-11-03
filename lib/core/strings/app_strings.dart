@@ -38,7 +38,8 @@ abstract final class AppStrings {
   static const sendResetLink = 'Send reset link';
   static const checkInbox = 'Check your inbox.';
   static String resetLinkSent(String email) =>
-      'We sent a reset link to $email.';
+      'If an account exists for $email, we sent a link to reset the '
+      'password. Check the spam folder too.';
   static const rememberedIt = 'Remembered it?';
   static const backToSignIn = 'Back to sign in';
 
@@ -154,4 +155,45 @@ abstract final class AppStrings {
   static const updatePassword = 'Update password';
   static const passwordUpdated = 'Password updated';
   static const signOut = 'Sign out';
+  static const phoneNotSaved = 'Will be saved once cloud sync is added';
+  static const nameUnchanged = 'Nothing to save: the name is the same.';
+  static const newPasswordSameAsCurrent =
+      'The new password must differ from the current one.';
+
+  // Profile photo (preset images; own uploads come with cloud storage)
+  static const choosePhoto = 'Choose a profile photo';
+  static const photoHint = 'Pick one of the ready images';
+  static const photoPresets = 'Pick an image';
+  static const usePhoto = 'Use this photo';
+  static const uploadFromDevice = 'Upload from device';
+  static const uploadComingSoon =
+      'Coming soon! For now, pick one of the images above.';
+  static const photoUpdated = 'Profile photo updated';
+  static const photoRemoved = 'Profile photo removed';
+
+  // Validation
+  static const nameRequired = 'Enter your name';
+  static const nameTooLong = 'Name must be at most 50 characters';
+  static const emailRequired = 'Enter your email';
+  static const emailInvalid = 'Enter a valid email, e.g. name@example.com';
+  static const passwordRequired = 'Enter a password';
+  static const passwordTooShort = 'Password must be at least 8 characters';
+  static const passwordSpaces = 'Password must not start or end with a space';
+  static const confirmPasswordRequired = 'Repeat the password';
+  static const passwordsDontMatch = "Passwords don't match";
+
+  // Errors
+  static const unexpectedError = 'Something went wrong. Please try again.';
+
+  // Diagnostics (LR4: crash reporting check)
+  static const diagnostics = 'Diagnostics';
+  static const diagnosticsHint =
+      'Send test reports to the crash reporting service.';
+  static const sendTestError = 'Send test error';
+  static const testErrorSent = 'Test error sent';
+  static const testCrash = 'Crash the app';
+  static const testCrashTitle = 'Crash the app?';
+  static const testCrashMessage =
+      'The app will close (Android) or report an uncaught error (Windows). '
+      'Use it to check crash reporting.';
 }

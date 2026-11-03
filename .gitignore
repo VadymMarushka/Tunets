@@ -50,3 +50,9 @@ app.*.map.json
 # Lab report draft and generated screenshots (not part of the app)
 /report/
 /test/tmp/
+
+# Local API keys for Sentry / Aptabase (see env.example.json)
+env.json
+
+# Sentry native SDK cache (Windows)
+.sentry-native/

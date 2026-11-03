@@ -1,4 +1,4 @@
-package com.example.fishing_diary
+package ua.lpnu.tunets
 
 import io.flutter.embedding.android.FlutterActivity
 

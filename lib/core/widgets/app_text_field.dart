@@ -12,6 +12,9 @@ import '../theme/app_text_styles.dart';
 
 /// Labeled text input: Material [TextField] on Android, Fluent [fl.TextBox]
 /// on Windows. The label sits above the field on both platforms (mockup).
+///
+/// Works inside a [Form]: [validator] runs on `FormState.validate()` and its
+/// message is shown under the field on both platforms.
 class AppTextField extends StatefulWidget {
   const AppTextField({
     super.key,
@@ -26,9 +29,12 @@ class AppTextField extends StatefulWidget {
     this.keyboardType,
     this.textInputAction,
     this.readOnly = false,
+    this.enabled = true,
     this.maxLines = 1,
     this.onChanged,
     this.onSubmitted,
+    this.validator,
+    this.autofillHints,
   });
 
   final String label;
@@ -42,9 +48,14 @@ class AppTextField extends StatefulWidget {
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final bool readOnly;
+
+  /// `false` while a request is running: the field can't be edited.
+  final bool enabled;
   final int maxLines;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
+  final FormFieldValidator<String>? validator;
+  final Iterable<String>? autofillHints;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -65,37 +76,57 @@ class _AppTextFieldState extends State<AppTextField> {
 
   @override
   Widget build(BuildContext context) {
-    final field = PlatformStyle.isFluent
-        ? _buildFluent(context)
-        : _buildMaterial(context);
-    return FieldLabel(
-      label: widget.label,
-      helperText: widget.helperText,
-      errorText: widget.errorText,
-      // Material shows helper/error inside its decoration.
-      showMessages: PlatformStyle.isFluent,
-      child: field,
+    return FormField<String>(
+      initialValue: _controller.text,
+      validator: widget.validator == null
+          ? null
+          : (_) => widget.validator!(_controller.text),
+      builder: (field) {
+        final errorText = field.errorText ?? widget.errorText;
+        void onChanged(String value) {
+          field.didChange(value);
+          widget.onChanged?.call(value);
+        }
+
+        return FieldLabel(
+          label: widget.label,
+          helperText: widget.helperText,
+          errorText: errorText,
+          // Material shows helper/error inside its decoration.
+          showMessages: PlatformStyle.isFluent,
+          child: PlatformStyle.isFluent
+              ? _buildFluent(context, errorText, onChanged)
+              : _buildMaterial(context, errorText, onChanged),
+        );
+      },
     );
   }
 
   // ===== Android (Material 3) =====
 
-  Widget _buildMaterial(BuildContext context) {
+  Widget _buildMaterial(
+    BuildContext context,
+    String? errorText,
+    ValueChanged<String> onChanged,
+  ) {
     final palette = AppPalette.of(context);
     return TextField(
       controller: _controller,
       readOnly: widget.readOnly,
+      enabled: widget.enabled,
+      autofillHints: widget.autofillHints,
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
       maxLines: widget.maxLines,
       minLines: widget.maxLines > 1 ? 3 : null,
-      onChanged: widget.onChanged,
+      onChanged: onChanged,
       onSubmitted: widget.onSubmitted,
       style: widget.readOnly ? TextStyle(color: palette.secondaryText) : null,
       decoration: InputDecoration(
         hintText: widget.hint,
         helperText: widget.helperText,
-        errorText: widget.errorText,
+        errorText: errorText,
+        errorMaxLines: 2,
         fillColor: widget.readOnly ? palette.surfaceVariant : null,
         prefixIcon: widget.prefixIcon == null
             ? null
@@ -109,27 +140,44 @@ class _AppTextFieldState extends State<AppTextField> {
 
   // ===== Windows (Fluent) =====
 
-  Widget _buildFluent(BuildContext context) {
+  Widget _buildFluent(
+    BuildContext context,
+    String? errorText,
+    ValueChanged<String> onChanged,
+  ) {
     final palette = AppPalette.of(context);
-    Widget? decorate(IconData? icon) => icon == null
+    final errorColor = errorText != null ? palette.error : null;
+    // Padding only on the outer side: the text box already keeps a gap
+    // between its text and the icon.
+    Widget? decorate(IconData? icon, EdgeInsetsGeometry padding) => icon == null
         ? null
         : Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+            padding: padding,
             child: Icon(icon, size: 16, color: palette.secondaryText),
           );
     return fl.TextBox(
       controller: _controller,
       readOnly: widget.readOnly,
-      enabled: !widget.readOnly,
+      enabled: widget.enabled && !widget.readOnly,
+      autofillHints: widget.autofillHints,
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
       maxLines: widget.maxLines,
       minLines: widget.maxLines > 1 ? 3 : null,
       placeholder: widget.hint,
-      onChanged: widget.onChanged,
+      onChanged: onChanged,
       onSubmitted: widget.onSubmitted,
-      prefix: decorate(widget.prefixIcon),
-      suffix: decorate(widget.suffixIcon),
+      // Red underline while the field has a validation error.
+      highlightColor: errorColor,
+      unfocusedColor: errorColor,
+      prefix: decorate(
+        widget.prefixIcon,
+        const EdgeInsetsDirectional.only(start: AppSpacing.sm),
+      ),
+      suffix: decorate(
+        widget.suffixIcon,
+        const EdgeInsetsDirectional.only(end: AppSpacing.sm),
+      ),
     );
   }
 }
