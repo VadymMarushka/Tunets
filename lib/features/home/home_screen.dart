@@ -61,10 +61,16 @@ class HomeScreen extends StatelessWidget {
           Text(AppStrings.appName, style: AppTextStyles.title(context)),
         ],
       ),
-      materialTrailing: UserAvatar(
-        size: 32,
-        initial: user.initial,
-        photoUrl: user.photoUrl,
+      // Tapping the avatar opens the Profile tab.
+      materialTrailing: IconButton(
+        tooltip: AppStrings.navProfile,
+        onPressed: () =>
+            AppShellScope.maybeOf(context)?.selectTab(AppTab.profile),
+        icon: UserAvatar(
+          size: 32,
+          initial: user.initial,
+          photoUrl: user.photoUrl,
+        ),
       ),
       fluentHeaderExtra: const SyncBadge(),
       floatingAction: addTrip,

@@ -2,6 +2,8 @@
 // Blocks are marked with "Android (Material 3)" / "Windows (Fluent)" comments.
 // In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
 
+import 'dart:math' as math;
+
 import 'package:fluent_ui/fluent_ui.dart' as fl;
 import 'package:flutter/material.dart';
 
@@ -70,6 +72,10 @@ class _AvatarPickerDialog extends StatefulWidget {
   State<_AvatarPickerDialog> createState() => _AvatarPickerDialogState();
 }
 
+/// Side margins of the phone dialog (Material default is 40); smaller so
+/// the pictures and the buttons get more room.
+const double _phoneDialogInset = AppSpacing.l;
+
 class _AvatarPickerDialogState extends State<_AvatarPickerDialog> {
   late String? _selected = widget.currentUrl;
 
@@ -79,9 +85,22 @@ class _AvatarPickerDialogState extends State<_AvatarPickerDialog> {
   @override
   Widget build(BuildContext context) {
     final canConfirm = _selected != null && _selected != widget.currentUrl;
+    final hasPhoto = widget.currentUrl != null;
+
+    // Six pictures per row on Windows, four on a phone. The phone dialog is
+    // the screen width minus the dialog's side insets and its padding (24).
+    final columns = PlatformStyle.isFluent ? 6 : 4;
+    final width = PlatformStyle.isFluent
+        ? 400.0
+        : math.min(
+            400.0,
+            MediaQuery.sizeOf(context).width - 2 * (_phoneDialogInset + 24),
+          );
+    final tileSize = ((width - (columns - 1) * AppSpacing.s) / columns)
+        .floorToDouble();
+
     final content = SizedBox(
-      // Six pictures per row on Windows; fewer on a narrow phone dialog.
-      width: 400,
+      width: width,
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -96,19 +115,32 @@ class _AvatarPickerDialogState extends State<_AvatarPickerDialog> {
                 for (final url in AvatarPresets.urls)
                   _PresetTile(
                     url: url,
+                    size: tileSize,
                     selected: url == _selected,
                     onTap: () => setState(() => _selected = url),
                   ),
               ],
             ),
             const SizedBox(height: AppSpacing.l),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: AppButton.secondary(
-                label: AppStrings.uploadFromDevice,
-                icon: AppIcons.upload,
-                onPressed: () => setState(() => _showComingSoon = true),
-              ),
+            // "Remove" lives here rather than among the dialog actions, so
+            // the phone dialog keeps two actions in one row.
+            Wrap(
+              spacing: AppSpacing.s,
+              runSpacing: AppSpacing.s,
+              children: [
+                AppButton.secondary(
+                  label: AppStrings.uploadFromDevice,
+                  icon: AppIcons.upload,
+                  onPressed: () => setState(() => _showComingSoon = true),
+                ),
+                if (hasPhoto)
+                  AppButton.danger(
+                    label: AppStrings.removePhoto,
+                    icon: AppIcons.delete,
+                    onPressed: () =>
+                        Navigator.of(context).pop(const AvatarChoice(null)),
+                  ),
+              ],
             ),
             if (_showComingSoon) ...[
               const SizedBox(height: AppSpacing.s),
@@ -121,8 +153,6 @@ class _AvatarPickerDialogState extends State<_AvatarPickerDialog> {
         ),
       ),
     );
-
-    final hasPhoto = widget.currentUrl != null;
 
     // ----- Windows (Fluent); the Android (Material 3) version follows -----
     if (PlatformStyle.isFluent) {
@@ -137,12 +167,6 @@ class _AvatarPickerDialogState extends State<_AvatarPickerDialog> {
                 : null,
             child: const Text(AppStrings.usePhoto),
           ),
-          if (hasPhoto)
-            fl.Button(
-              onPressed: () =>
-                  Navigator.of(context).pop(const AvatarChoice(null)),
-              child: const Text(AppStrings.removePhoto),
-            ),
           fl.Button(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text(AppStrings.cancel),
@@ -153,25 +177,32 @@ class _AvatarPickerDialogState extends State<_AvatarPickerDialog> {
     return AlertDialog(
       title: const Text(AppStrings.choosePhoto),
       content: content,
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: _phoneDialogInset,
+        vertical: AppSpacing.l,
+      ),
+      // Cancel on the left, the main action wider; together a full row.
       actions: [
-        if (hasPhoto)
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: AppPalette.of(context).error,
+        Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(AppStrings.cancel),
+              ),
             ),
-            onPressed: () =>
-                Navigator.of(context).pop(const AvatarChoice(null)),
-            child: const Text(AppStrings.remove),
-          ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text(AppStrings.cancel),
-        ),
-        FilledButton(
-          onPressed: canConfirm
-              ? () => Navigator.of(context).pop(AvatarChoice(_selected))
-              : null,
-          child: const Text(AppStrings.usePhoto),
+            const SizedBox(width: AppSpacing.s),
+            Expanded(
+              flex: 3,
+              child: FilledButton(
+                onPressed: canConfirm
+                    ? () => Navigator.of(context).pop(AvatarChoice(_selected))
+                    : null,
+                child: const Text(AppStrings.usePhoto),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -181,11 +212,15 @@ class _AvatarPickerDialogState extends State<_AvatarPickerDialog> {
 class _PresetTile extends StatelessWidget {
   const _PresetTile({
     required this.url,
+    required this.size,
     required this.selected,
     required this.onTap,
   });
 
   final String url;
+
+  /// Outer size, including the selection ring.
+  final double size;
   final bool selected;
   final VoidCallback onTap;
 
@@ -208,7 +243,7 @@ class _PresetTile extends StatelessWidget {
                 width: 3,
               ),
             ),
-            child: UserAvatar(size: 48, photoUrl: url),
+            child: UserAvatar(size: size - 12, photoUrl: url),
           ),
         ),
       ),
