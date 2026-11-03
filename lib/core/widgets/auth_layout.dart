@@ -18,6 +18,11 @@ import 'brand.dart';
 /// Windows: centered card on a Mica-like backdrop, with a
 /// "← Back to sign in" link inside the card.
 class AuthLayout extends StatelessWidget {
+  /// Vertical gap between form fields: denser on Windows (Fluent), where
+  /// the window may be short.
+  static double get fieldGap =>
+      PlatformStyle.isFluent ? AppSpacing.sm : AppSpacing.m;
+
   const AuthLayout({super.key, required this.children, this.showBack = false});
 
   final List<Widget> children;
@@ -64,47 +69,52 @@ class AuthLayout extends StatelessWidget {
           colors: palette.mica,
         ),
       ),
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.l),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const AppLogo(size: 32),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(AppStrings.appName, style: AppTextStyles.title(context)),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.l),
-              ConstrainedBox(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.l),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const AppLogo(size: 32),
+                const SizedBox(width: AppSpacing.sm),
+                Text(AppStrings.appName, style: AppTextStyles.title(context)),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.l),
+            // In a short window only the card's contents scroll; the logo
+            // and the card frame stay in place.
+            Flexible(
+              child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 360),
                 child: fl.Card(
-                  padding: const EdgeInsets.all(AppSpacing.l),
+                  padding: EdgeInsets.zero,
                   borderRadius: BorderRadius.circular(AppRadius.fluent),
                   backgroundColor: palette.surface,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (showBack) ...[
-                        Align(
-                          alignment: AlignmentDirectional.centerStart,
-                          child: fl.HyperlinkButton(
-                            onPressed: () => Navigator.of(context).maybePop(),
-                            child: const Text('← ${AppStrings.backToSignIn}'),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppSpacing.l),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (showBack) ...[
+                          Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: fl.HyperlinkButton(
+                              onPressed: () => Navigator.of(context).maybePop(),
+                              child: const Text('← ${AppStrings.backToSignIn}'),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: AppSpacing.s),
+                          const SizedBox(height: AppSpacing.s),
+                        ],
+                        ...children,
                       ],
-                      ...children,
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

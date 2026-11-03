@@ -97,12 +97,17 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> signIn({required String email, required String password}) =>
-      _guard(
-        () => _auth.signInWithEmailAndPassword(
-          email: email.trim(),
-          password: password,
-        ),
-      );
+      _guard(() async {
+        try {
+          await _auth.signInWithEmailAndPassword(
+            email: email.trim(),
+            password: password,
+          );
+        } on FirebaseAuthException catch (e) {
+          if (_isWrongCredentials(e)) throw AuthFailure.wrongCredentials;
+          rethrow;
+        }
+      });
 
   @override
   Future<void> sendPasswordReset({required String email}) =>
@@ -145,11 +150,7 @@ class FirebaseAuthRepository implements AuthRepository {
         ),
       );
     } on FirebaseAuthException catch (e) {
-      if (const {
-        'invalid-credential',
-        'wrong-password',
-        'INVALID_LOGIN_CREDENTIALS',
-      }.contains(e.code)) {
+      if (_isWrongCredentials(e)) {
         throw const AuthFailure(
           'The current password is incorrect.',
           code: 'wrong-current-password',
@@ -169,6 +170,15 @@ class FirebaseAuthRepository implements AuthRepository {
       );
     }
     return user;
+  }
+
+  /// Whether a sign-in (or re-authentication) was rejected because of a
+  /// wrong email or password. The Windows SDK doesn't recognise the
+  /// server's reply for this case and may report it as `unknown-error`
+  /// without details; connection problems have their own code there.
+  static bool _isWrongCredentials(FirebaseAuthException e) {
+    final code = AuthFailure.codeOf(e);
+    return AuthFailure.isWrongCredentials(code) || code == 'unknown-error';
   }
 
   /// Runs a Firebase call and converts its errors into [AuthFailure].

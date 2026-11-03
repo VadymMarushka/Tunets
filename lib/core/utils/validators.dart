@@ -48,15 +48,4 @@ abstract final class Validators {
     if (value != original()) return AppStrings.passwordsDontMatch;
     return null;
   };
-
-  /// Profile photo link: must be a valid https:// URL.
-  static String? photoUrl(String? value) {
-    final url = value?.trim() ?? '';
-    if (url.isEmpty) return AppStrings.photoUrlRequired;
-    final uri = Uri.tryParse(url);
-    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) {
-      return AppStrings.photoUrlInvalid;
-    }
-    return null;
-  }
 }

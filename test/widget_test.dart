@@ -303,6 +303,27 @@ void main() {
         expect(find.text('Summary'), findsNothing);
       });
     });
+
+    testWidgets('short window: register form scrolls inside the card', (
+      tester,
+    ) async {
+      await runAsWindows(tester, () async {
+        await setWindow(tester, const Size(800, 480));
+        await tester.pumpWidget(testApp());
+        await tester.pumpAndSettle();
+        await tapText(tester, 'Register');
+
+        // The logo stays put while the fields scroll under it.
+        final logo = tester.getTopLeft(find.text('Tunets'));
+        await tester.drag(find.text('Create account'), const Offset(0, -300));
+        await tester.pumpAndSettle();
+        expect(tester.getTopLeft(find.text('Tunets')), logo);
+        expect(
+          find.widgetWithText(fl.FilledButton, 'Register'),
+          findsOneWidget,
+        );
+      });
+    });
   });
 }
 

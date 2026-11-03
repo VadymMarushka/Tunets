@@ -160,15 +160,14 @@ abstract final class AppStrings {
   static const newPasswordSameAsCurrent =
       'The new password must differ from the current one.';
 
-  // Profile photo (preset images or own HTTPS link)
+  // Profile photo (preset images; own uploads come with cloud storage)
   static const choosePhoto = 'Choose a profile photo';
-  static const photoHint = 'Pick a ready image or paste a link';
+  static const photoHint = 'Pick one of the ready images';
   static const photoPresets = 'Pick an image';
-  static const photoOwnLink = 'Or paste a link to an image';
-  static const photoUrl = 'Image link (https://)';
-  static const photoPreview = 'Preview';
-  static const photoPreviewFailed = "Couldn't load an image from this link.";
   static const usePhoto = 'Use this photo';
+  static const uploadFromDevice = 'Upload from device';
+  static const uploadComingSoon =
+      'Coming soon! For now, pick one of the images above.';
   static const photoUpdated = 'Profile photo updated';
   static const photoRemoved = 'Profile photo removed';
 
@@ -182,8 +181,6 @@ abstract final class AppStrings {
   static const passwordSpaces = 'Password must not start or end with a space';
   static const confirmPasswordRequired = 'Repeat the password';
   static const passwordsDontMatch = "Passwords don't match";
-  static const photoUrlRequired = 'Paste a link to an image';
-  static const photoUrlInvalid = 'Use a valid link that starts with https://';
 
   // Errors
   static const unexpectedError = 'Something went wrong. Please try again.';

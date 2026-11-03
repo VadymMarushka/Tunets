@@ -147,10 +147,12 @@ class _AppTextFieldState extends State<AppTextField> {
   ) {
     final palette = AppPalette.of(context);
     final errorColor = errorText != null ? palette.error : null;
-    Widget? decorate(IconData? icon) => icon == null
+    // Padding only on the outer side: the text box already keeps a gap
+    // between its text and the icon.
+    Widget? decorate(IconData? icon, EdgeInsetsGeometry padding) => icon == null
         ? null
         : Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+            padding: padding,
             child: Icon(icon, size: 16, color: palette.secondaryText),
           );
     return fl.TextBox(
@@ -168,8 +170,14 @@ class _AppTextFieldState extends State<AppTextField> {
       // Red underline while the field has a validation error.
       highlightColor: errorColor,
       unfocusedColor: errorColor,
-      prefix: decorate(widget.prefixIcon),
-      suffix: decorate(widget.suffixIcon),
+      prefix: decorate(
+        widget.prefixIcon,
+        const EdgeInsetsDirectional.only(start: AppSpacing.sm),
+      ),
+      suffix: decorate(
+        widget.suffixIcon,
+        const EdgeInsetsDirectional.only(end: AppSpacing.sm),
+      ),
     );
   }
 }

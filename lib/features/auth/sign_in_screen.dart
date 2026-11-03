@@ -112,7 +112,7 @@ class _SignInScreenState extends State<SignInScreen> {
               autofillHints: const [AutofillHints.email],
               validator: Validators.email,
             ),
-            const SizedBox(height: AppSpacing.m),
+            SizedBox(height: AuthLayout.fieldGap),
             PasswordField(
               label: AppStrings.password,
               controller: _password,

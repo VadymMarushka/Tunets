@@ -8,21 +8,37 @@ import 'package:flutter/material.dart';
 import '../platform/platform_style.dart';
 import '../strings/app_strings.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_icons.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
-import '../utils/validators.dart';
-import 'app_text_field.dart';
+import 'app_button.dart';
 import 'brand.dart';
 
-/// Ready-made profile pictures (HTTPS links). Uploading own files to
-/// storage comes in LR6; until then the user picks one of these or pastes
-/// a link to an image.
+/// Ready-made profile pictures (HTTPS links to DiceBear "thumbs" images).
+/// Uploading own files to storage comes in LR6; until then the user picks
+/// one of these.
 abstract final class AvatarPresets {
-  static const _seeds = ['Pike', 'Perch', 'Carp', 'Bream', 'Zander', 'Roach'];
+  /// Background, figure color, eyes and mouth of each picture.
+  static const _styles = [
+    ('c8e6c9', '2e7d32', 'variant1W12', 'variant1'),
+    ('1b5e20', 'a5d6a7', 'variant2W14', 'variant2'),
+    ('b2dfdb', '00897b', 'variant3W12', 'variant3'),
+    ('dcedc8', '7cb342', 'variant4W16', 'variant4'),
+    ('bbdefb', '1e88e5', 'variant5W14', 'variant5'),
+    ('0a5b83', '69d2e7', 'variant6W12', 'variant1'),
+    ('fff3c4', 'f9a825', 'variant7W14', 'variant2'),
+    ('ffe0b2', 'f4511e', 'variant8W12', 'variant3'),
+    ('f8bbd0', 'd81b60', 'variant9W14', 'variant4'),
+    ('e1bee7', '8e24aa', 'variant2W10', 'variant5'),
+    ('ffcdd2', 'c62828', 'variant5W16', 'variant2'),
+    ('37474f', 'eceff1', 'variant8W16', 'variant1'),
+  ];
 
   static final urls = [
-    for (final seed in _seeds)
-      'https://api.dicebear.com/9.x/thumbs/png?seed=$seed&size=256',
+    for (final (i, (background, shape, eyes, mouth)) in _styles.indexed)
+      'https://api.dicebear.com/9.x/thumbs/png?seed=tunets${i + 1}&size=256'
+          '&backgroundColor=$background&shapeColor=$shape'
+          '&eyes=$eyes&mouth=$mouth',
   ];
 }
 
@@ -55,91 +71,53 @@ class _AvatarPickerDialog extends StatefulWidget {
 }
 
 class _AvatarPickerDialogState extends State<_AvatarPickerDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final _link = TextEditingController();
   late String? _selected = widget.currentUrl;
 
-  /// Link typed by the user, shown in the preview once it's valid.
-  String? _preview;
-
-  @override
-  void dispose() {
-    _link.dispose();
-    super.dispose();
-  }
-
-  void _onLinkChanged(String value) {
-    final valid = Validators.photoUrl(value) == null;
-    setState(() {
-      _preview = valid ? value.trim() : null;
-      if (valid) _selected = value.trim();
-    });
-  }
-
-  void _pickPreset(String url) {
-    _link.clear();
-    setState(() {
-      _preview = null;
-      _selected = url;
-    });
-  }
-
-  void _confirm() {
-    // Only validate the link field when the user typed something.
-    if (_link.text.isNotEmpty && !_formKey.currentState!.validate()) return;
-    Navigator.of(context).pop(AvatarChoice(_selected));
-  }
+  /// Set after a tap on "Upload from device", which isn't available yet.
+  bool _showComingSoon = false;
 
   @override
   Widget build(BuildContext context) {
     final canConfirm = _selected != null && _selected != widget.currentUrl;
     final content = SizedBox(
-      width: 380,
-      child: Form(
-        key: _formKey,
-        autovalidateMode: AutovalidateMode.onUserInteractionIfError,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                AppStrings.photoPresets,
-                style: AppTextStyles.label(context),
-              ),
-              const SizedBox(height: AppSpacing.s),
-              Wrap(
-                spacing: AppSpacing.s,
-                runSpacing: AppSpacing.s,
-                children: [
-                  for (final url in AvatarPresets.urls)
-                    _PresetTile(
-                      url: url,
-                      selected: url == _selected,
-                      onTap: () => _pickPreset(url),
-                    ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.l),
-              AppTextField(
-                label: AppStrings.photoOwnLink,
-                controller: _link,
-                hint: AppStrings.photoUrl,
-                keyboardType: TextInputType.url,
-                validator: Validators.photoUrl,
-                onChanged: _onLinkChanged,
-              ),
-              if (_preview != null) ...[
-                const SizedBox(height: AppSpacing.m),
-                Text(
-                  AppStrings.photoPreview,
-                  style: AppTextStyles.caption(context),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                _LinkPreview(url: _preview!),
+      // Six pictures per row on Windows; fewer on a narrow phone dialog.
+      width: 400,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(AppStrings.photoPresets, style: AppTextStyles.label(context)),
+            const SizedBox(height: AppSpacing.s),
+            Wrap(
+              spacing: AppSpacing.s,
+              runSpacing: AppSpacing.s,
+              children: [
+                for (final url in AvatarPresets.urls)
+                  _PresetTile(
+                    url: url,
+                    selected: url == _selected,
+                    onTap: () => setState(() => _selected = url),
+                  ),
               ],
+            ),
+            const SizedBox(height: AppSpacing.l),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: AppButton.secondary(
+                label: AppStrings.uploadFromDevice,
+                icon: AppIcons.upload,
+                onPressed: () => setState(() => _showComingSoon = true),
+              ),
+            ),
+            if (_showComingSoon) ...[
+              const SizedBox(height: AppSpacing.s),
+              Text(
+                AppStrings.uploadComingSoon,
+                style: AppTextStyles.caption(context),
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -154,7 +132,9 @@ class _AvatarPickerDialogState extends State<_AvatarPickerDialog> {
         content: content,
         actions: [
           fl.FilledButton(
-            onPressed: canConfirm ? _confirm : null,
+            onPressed: canConfirm
+                ? () => Navigator.of(context).pop(AvatarChoice(_selected))
+                : null,
             child: const Text(AppStrings.usePhoto),
           ),
           if (hasPhoto)
@@ -188,7 +168,9 @@ class _AvatarPickerDialogState extends State<_AvatarPickerDialog> {
           child: const Text(AppStrings.cancel),
         ),
         FilledButton(
-          onPressed: canConfirm ? _confirm : null,
+          onPressed: canConfirm
+              ? () => Navigator.of(context).pop(AvatarChoice(_selected))
+              : null,
           child: const Text(AppStrings.usePhoto),
         ),
       ],
@@ -226,36 +208,8 @@ class _PresetTile extends StatelessWidget {
                 width: 3,
               ),
             ),
-            child: UserAvatar(size: 52, photoUrl: url),
+            child: UserAvatar(size: 48, photoUrl: url),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Image from the pasted link, or a message when it can't be loaded.
-class _LinkPreview extends StatelessWidget {
-  const _LinkPreview({required this.url});
-
-  final String url;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: AlignmentDirectional.centerStart,
-      child: Image.network(
-        url,
-        key: ValueKey(url),
-        width: 72,
-        height: 72,
-        fit: BoxFit.cover,
-        // Round only the loaded image, not the error message.
-        frameBuilder: (context, child, frame, sync) => ClipOval(child: child),
-        errorBuilder: (context, error, stack) => Text(
-          AppStrings.photoPreviewFailed,
-          style: AppTextStyles.caption(context)
-              .copyWith(color: AppPalette.of(context).error),
         ),
       ),
     );

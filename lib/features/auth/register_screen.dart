@@ -120,7 +120,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               autofillHints: const [AutofillHints.name],
               validator: Validators.name,
             ),
-            const SizedBox(height: AppSpacing.m),
+            SizedBox(height: AuthLayout.fieldGap),
             AppTextField(
               label: AppStrings.email,
               controller: _email,
@@ -131,7 +131,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               autofillHints: const [AutofillHints.email],
               validator: Validators.email,
             ),
-            const SizedBox(height: AppSpacing.m),
+            SizedBox(height: AuthLayout.fieldGap),
             PasswordField(
               label: AppStrings.password,
               controller: _password,
@@ -141,7 +141,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               autofillHints: const [AutofillHints.newPassword],
               validator: Validators.newPassword,
             ),
-            const SizedBox(height: AppSpacing.m),
+            SizedBox(height: AuthLayout.fieldGap),
             PasswordField(
               label: AppStrings.confirmPassword,
               controller: _confirm,
