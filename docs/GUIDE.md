@@ -56,20 +56,25 @@ if (... // Android (Material 3) only
 
 ```
 lib/
-├── main.dart                 точка входу — просто запускає TunetsApp
+├── main.dart                 точка входу: Firebase, сервіси, обробники помилок
+├── firebase_options.dart     згенеровано `flutterfire configure` (не редагувати)
 ├── app/                      «каркас» застосунку
 │   ├── tunets_app.dart       MaterialApp або FluentApp + теми
+│   ├── app_services.dart     AppServices (auth, analytics, crashes) і CurrentUser
+│   ├── auth_gate.dart        вхід / головний екран залежно від сеансу
 │   ├── app_shell.dart        навігація після входу (нижня/бічна панель)
 │   └── app_routes.dart       переходи між екранами (push / pop)
 ├── core/                     усе спільне, не прив'язане до конкретного екрана
 │   ├── platform/             PlatformStyle (яка платформа) + Breakpoints (ширини)
+│   ├── services/             аналітика і звіти про помилки (Firebase / аналоги)
 │   ├── strings/              усі тексти інтерфейсу (англійською)
 │   ├── theme/                кольори, відступи, шрифти, іконки, теми
-│   ├── utils/                форматування дат і ваги
+│   ├── utils/                форматування дат і ваги, валідація полів
 │   └── widgets/              спільні віджети (вимога методички, п. 5)
 ├── data/                     дані
 │   ├── models/               Trip, Weather, CatchEntry, UserProfile
-│   └── mock/                 захардкоджені дані (замість Firebase)
+│   ├── repositories/         AuthRepository (Firebase Auth) + AuthFailure
+│   └── mock/                 тестові виїзди (до Cloud Firestore у ЛР5)
 └── features/                 екрани, згруповані за функціями
     ├── auth/                 S-1, S-2, S-3
     ├── home/                 S-4
@@ -94,8 +99,11 @@ lib/
 
 Що де всередині:
 
-* **sign_in_screen** — кнопка «Sign in» викликає `context.resetTo(const AppShell())`,
-  тобто просто відкриває головний екран (без перевірки пароля — так дозволяє методичка).
+* **sign_in_screen / register_screen / reset_password_screen** — `StatefulWidget` з
+  `Form` і `GlobalKey<FormState>`. Кнопка спершу викликає `validate()`, потім метод
+  `AuthRepository` (`signIn`, `signUp`, `sendPasswordReset`). Поки запит іде, кнопка
+  показує індикатор, поля заблоковані. Помилка `AuthFailure` → `showNotice(...)`.
+  Після успіху екран нікуди сам не переходить — це робить `AuthGate` (див. розділ 5).
 * **home_screen** — привітання, бейдж `Synced`, останні 3 виїзди. На широкому вікні
   справа картка `_SummaryCard` (статистика за місяць).
 * **trips_screen** — пошук + фільтри. На вузькому екрані — просто список
@@ -107,8 +115,13 @@ lib/
 * **trip_form_screen** — створення/редагування. Стан форми (дата, водойма, список
   снастей, список уловів `_CatchDraft`) живе в `_TripFormScreenState`.
   Кнопки: на Android — знизу (`_MaterialFormBar`), на Windows — у заголовку.
-* **profile_screen** — дві секції: `_PersonalInfoSection` і `_ChangePasswordSection`.
-  На широкому вікні стоять у дві колонки.
+* **profile_screen** — секції `_PersonalInfoSection` (ім'я, фото через
+  `showAvatarPicker`, телефон — заглушка до Firestore), `_ChangePasswordSection`
+  (повторна автентифікація + новий пароль) і `_DiagnosticsSection` (тестова помилка
+  та тестовий збій для Crashlytics / Sentry). На широкому вікні — дві колонки.
+  Кнопка виходу — в заголовку сторінки.
+* **home_screen** — дані користувача (ім'я, фото) беруться з `CurrentUser.of(context)`;
+  тап по аватару відкриває вкладку Profile.
 
 ---
 
@@ -119,9 +132,11 @@ lib/
 | `AppPage`, `PageAction` | [app_page.dart](../lib/core/widgets/app_page.dart) | `Scaffold` + `AppBar` + FAB | `ScaffoldPage` + `PageHeader` з кнопками | усі екрани після входу |
 | `ContentConstraint`, `pagePadding()` | [app_page.dart](../lib/core/widgets/app_page.dart) | — | — | обмеження ширини і відступи сторінки |
 | `AuthLayout`, `AuthSwitchLine` | [auth_layout.dart](../lib/core/widgets/auth_layout.dart) | форма на весь екран | картка по центру на «mica»-фоні | S-1, S-2, S-3 |
-| `AppTextField`, `FieldLabel` | [app_text_field.dart](../lib/core/widgets/app_text_field.dart) | `TextField` | `fl.TextBox` | усі форми |
-| `PasswordField` | [password_field.dart](../lib/core/widgets/password_field.dart) | `TextField` + кнопка «око» | `fl.PasswordBox` | вхід, реєстрація, профіль |
-| `AppButton` (`primary/secondary/text/danger`), `AppIconButton` | [app_button.dart](../lib/core/widgets/app_button.dart) | `FilledButton` / `OutlinedButton` / `TextButton` | `fl.FilledButton` / `fl.Button` / `fl.HyperlinkButton` | всюди |
+| `AppTextField`, `FieldLabel` | [app_text_field.dart](../lib/core/widgets/app_text_field.dart) | `TextField` | `fl.TextBox` | усі форми; обгорнуто в `FormField`, тож `validator` працює в `Form` на обох платформах |
+| `PasswordField` | [password_field.dart](../lib/core/widgets/password_field.dart) | `TextField` + кнопка «око» | `fl.PasswordBox` | вхід, реєстрація, профіль (теж `FormField`) |
+| `AppButton` (`primary/secondary/text/danger`), `AppIconButton` | [app_button.dart](../lib/core/widgets/app_button.dart) | `FilledButton` / `OutlinedButton` / `TextButton` | `fl.FilledButton` / `fl.Button` / `fl.HyperlinkButton` | всюди; `loading: true` — індикатор і неактивна кнопка |
+| `AppProgressIndicator` | [progress.dart](../lib/core/widgets/progress.dart) | `CircularProgressIndicator` | `fl.ProgressRing` | кнопки, заставка |
+| `showAvatarPicker`, `AvatarPresets` | [avatar_picker.dart](../lib/core/widgets/avatar_picker.dart) | `AlertDialog` | `fl.ContentDialog` | вибір фото профілю з 12 готових (DiceBear, HTTPS) |
 | `AppCard` | [app_card.dart](../lib/core/widgets/app_card.dart) | Material `Card` з ripple | шар з рамкою, hover і фокус | картки, секції |
 | `AppSelectField` | [app_pickers.dart](../lib/core/widgets/app_pickers.dart) | `DropdownButtonFormField` | `fl.ComboBox` | водойма, вид риби, вітер |
 | `AppDateField`, `AppTimeField` | [app_pickers.dart](../lib/core/widgets/app_pickers.dart) | системні `showDatePicker` / `showTimePicker` | `fl.DatePicker` / `fl.TimePicker` | форма виїзду |
@@ -142,11 +157,20 @@ lib/
 
 ## 5. Навігація
 
-**До входу:** `TunetsApp` → `SignInScreen`. Звідти `pushPage(...)` на реєстрацію
-чи відновлення пароля, `Navigator.pop` — назад.
+Кореневий екран — [`AuthGate`](../lib/app/auth_gate.dart). Він слухає
+`AuthRepository.userChanges()` і сам вирішує, що показати:
 
-**Після входу:** `resetTo(const AppShell())` очищає весь стек (щоб кнопка «назад»
-не повертала на екран входу) і показує [`AppShell`](../lib/app/app_shell.dart).
+* Firebase ще відновлює збережений сеанс → заставка (лого + індикатор);
+* користувача немає → `SignInScreen`;
+* користувач є → `CurrentUser(user, AppShell(...))`.
+
+**До входу:** з `SignInScreen` — `pushPage(...)` на реєстрацію чи відновлення
+пароля, `Navigator.pop` — назад. Після успішного входу/реєстрації екран викликає
+`context.returnToRoot()` (закриває реєстрацію, якщо вона була відкрита), а
+`AuthGate` вже показує [`AppShell`](../lib/app/app_shell.dart).
+
+**Вихід:** `returnToRoot()` + `auth.signOut()` → `AuthGate` показує екран входу.
+Кнопка «назад» ніколи не повертає між станами «увійшов / не увійшов».
 
 `AppShell` має три розділи (`AppTab.home / trips / profile`). У **кожного розділу
 свій вкладений `Navigator`**, тому коли відкриваєш деталі виїзду, нижня/бічна
@@ -158,7 +182,7 @@ lib/
 |---|---|
 | `context.pushPage(screen)` | відкрити сторінку всередині поточного розділу |
 | `context.pushFullScreen(screen)` | на Android — поверх усього (без нижньої панелі; так відкривається форма), на Windows — як `pushPage` |
-| `context.resetTo(screen)` | замінити весь стек (вхід / вихід) |
+| `context.returnToRoot()` | закрити все до кореня (`AuthGate`) — після входу і перед виходом |
 | `appRoute(builder)` | `MaterialPageRoute` на Android, `FluentPageRoute` на Windows |
 
 Перемкнути розділ з екрана (наприклад, «See all» на Home → Trips):
@@ -197,17 +221,61 @@ lib/
 ## 7. Дані
 
 * [data/models](../lib/data/models) — прості класи: `Trip` (виїзд), `Weather`,
-  `CatchEntry` (один вид улову), `UserProfile`.
-* [data/mock/mock_data.dart](../lib/data/mock/mock_data.dart) — захардкоджені
-  користувач і 4 виїзди. `MockData.today` = 29.09.2026, щоб фільтр «This month» і
-  Summary показували вересень, як у макеті.
-
-У наступних лабах `MockData` заміниться репозиторієм, який читає з Firebase;
-екрани для цього майже не доведеться змінювати.
+  `CatchEntry` (один вид улову), `UserProfile` (uid, ім'я, email, фото).
+* [data/repositories/auth_repository.dart](../lib/data/repositories/auth_repository.dart) —
+  інтерфейс `AuthRepository` і реалізація `FirebaseAuthRepository`. Екрани знають
+  лише інтерфейс; у тестах підставляється `FakeAuthRepository`
+  ([test/fakes.dart](../test/fakes.dart)).
+* [data/repositories/auth_failure.dart](../lib/data/repositories/auth_failure.dart) —
+  коди помилок Firebase → зрозумілі повідомлення. Firebase SDK для Windows повертає
+  частину помилок сервера (напр. неправильний пароль) як `unknown-error`, тому код
+  додатково шукається в тексті повідомлення.
+* [data/mock/mock_data.dart](../lib/data/mock/mock_data.dart) — 4 тестові виїзди
+  (користувач уже справжній, з Firebase). `MockData.today` = 29.09.2026, щоб фільтр
+  «This month» і Summary показували вересень, як у макеті. Виїзди переїдуть у
+  Cloud Firestore у ЛР5.
 
 ---
 
-## 8. Рецепти
+## 8. Firebase і сервіси (ЛР4)
+
+| Функція | Android | Windows | Код |
+|---|---|---|---|
+| Вхід / реєстрація | Firebase Auth | Firebase Auth | [auth_repository.dart](../lib/data/repositories/auth_repository.dart) |
+| Аналітика | Firebase Analytics | Aptabase | [analytics_service.dart](../lib/core/services/analytics_service.dart) |
+| Звіти про помилки | Firebase Crashlytics | Sentry | [crash_reporter.dart](../lib/core/services/crash_reporter.dart) |
+
+Firebase Analytics і Crashlytics не мають реалізації для Windows, тому там
+використані аналоги. Реалізацію для платформи обирає [main.dart](../lib/main.dart),
+а екрани отримують сервіси через `AppServices.of(context)`:
+
+```dart
+final services = AppServices.of(context);
+await services.auth.signIn(email: ..., password: ...);
+services.analytics.logLogin();
+services.crashes.recordError(error, stack, reason: 'sign_in');
+```
+
+* **Проєкт Firebase:** `tunets-ca0c8`, увімкнено лише Email/Password.
+  Android app ID — `ua.lpnu.tunets`; Windows використовує конфігурацію вебзастосунку.
+* **Переналаштування** (новий сервіс Firebase чи платформа):
+  `flutterfire configure --platforms=android,windows` — оновить
+  `lib/firebase_options.dart`, `android/app/google-services.json`, `firebase.json`.
+* **Ключі Windows-сервісів** (Sentry DSN, Aptabase App Key) лежать у `env.json` у
+  корені проєкту. Файл **не в git**; шаблон — [env.example.json](../env.example.json).
+  Без нього застосунок працює, але аналітика й звіти на Windows вимкнені.
+* **Події аналітики:** `login`, `sign_up`, `screen_view` + власні з `AnalyticsEvents`
+  (`password_reset_requested`, `profile_updated`, `profile_photo_changed`,
+  `password_changed`, `sign_out`). Email і паролі в події не передаються.
+* **Перевірка звітів:** Profile → Diagnostics → «Send test error» (нефатальна) або
+  «Crash the app» (збій). Crashlytics надсилає звіт про збій **під час наступного
+  запуску**, тож застосунок треба відкрити ще раз.
+* **API-ключі у `firebase_options.dart`** — публічні клієнтські ключі Firebase, їх
+  можна тримати в git (GitHub може показати попередження — це false positive).
+
+---
+
+## 9. Рецепти
 
 **Додати новий екран:**
 1. Створити файл у `features/<розділ>/`, клас `XxxScreen extends StatelessWidget`.
@@ -226,16 +294,47 @@ lib/
 **Подивитися Windows-вигляд у тесті:** див. [test/widget_test.dart](../test/widget_test.dart) —
 там `debugDefaultTargetPlatformOverride = TargetPlatform.windows`.
 
+**Додати форму з валідацією:**
+1. `StatefulWidget`, у стані `final _formKey = GlobalKey<FormState>();` (не в `build`).
+2. `Form(key: _formKey, autovalidateMode: AutovalidateMode.onUserInteractionIfError, ...)`.
+3. Поля `AppTextField` / `PasswordField` з `validator:` — правила з
+   [validators.dart](../lib/core/utils/validators.dart).
+4. На кнопці: `if (_loading || !_formKey.currentState!.validate()) return;`, далі
+   `setState(() => _loading = true)` і виклик репозиторію в `try / on AuthFailure / finally`.
+
 ---
 
-## 9. Запуск
+## 10. Запуск
+
+Перший раз: скопіювати `env.example.json` → `env.json` і вписати ключі Sentry та
+Aptabase. Для Windows-збірки з плагінами потрібен **режим розробника** Windows
+(Settings → System → For developers → Developer Mode).
 
 ```bash
-flutter run -d windows          # Windows
-flutter devices                 # список пристроїв (телефон має бути тут)
-flutter run -d <id телефона>    # на телефон з hot reload
-flutter build apk --release     # APK для встановлення
-flutter install -d <id> --release
-flutter analyze                 # перевірка коду
-flutter test                    # тести
+flutter run -d windows --dart-define-from-file=env.json      # Windows
+flutter build apk --release --dart-define-from-file=env.json # APK для телефона
+flutter analyze                                              # перевірка коду
+flutter test                                                 # тести (Firebase не потрібен)
 ```
+
+**Телефон через Wi-Fi** (USB-налагодження на цьому ПК не працює — Windows ставить
+на телефон MTP-драйвер):
+
+1. На телефоні: Параметри розробника → **Налагодження через Wi-Fi** → увімкнути.
+   На Samsung спершу вимкнути **Автоблокування** (Auto Blocker), інакше телефон
+   відхиляє з'єднання.
+2. Перший раз — спарувати: «Підключати пристрій за допомогою коду підключення»,
+   **не виходячи з цього вікна** надрукувати на ПК:
+   `adb pair <IP:порт з вікна> <6-значний код>`.
+   (Якщо перемкнутися в інший застосунок, вікно закривається і пара не створюється.)
+3. Підключитися: `adb mdns services` покаже актуальний порт, далі
+   `adb connect <IP:порт>`. Порт змінюється після кожного перемикання.
+4. Встановити: `adb install -r build/app/outputs/flutter-apk/app-release.apk`
+   (або `flutter run -d <IP:порт>` з hot reload).
+
+Режим налагодження Firebase Analytics (події одразу в DebugView):
+`adb shell setprop debug.firebase.analytics.app ua.lpnu.tunets`.
+
+Мінімальна версія Android — 10 (minSdk 29). У `android/gradle.properties` вимкнено
+інкрементальну компіляцію Kotlin (`kotlin.incremental=false`): проєкт на диску D:,
+а кеш пакетів на C:, і кеш Kotlin через це ламається.
