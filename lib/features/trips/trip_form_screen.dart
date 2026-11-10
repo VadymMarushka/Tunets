@@ -267,29 +267,16 @@ class _TripFormScreenState extends State<TripFormScreen> {
       prefixIcon: AppIcons.waterBody,
       textInputAction: TextInputAction.next,
       validator: Validators.waterBody,
-      suggestions: _waterBodySuggestions(),
+      suggestions: MockData.waterBodySuggestions,
     ),
   ];
-
-  /// The user's own water bodies (most recent first), then the hardcoded
-  /// list, without repeats.
-  List<String> _waterBodySuggestions() {
-    final trips = context.read<TripsBloc>().state.trips;
-    final seen = <String>{};
-    return [
-      for (final name in [
-        ...trips.map((t) => t.waterBody),
-        ...MockData.waterBodySuggestions,
-      ])
-        if (seen.add(name.toLowerCase())) name,
-    ];
-  }
 
   List<Widget> _weatherFields() {
     return [
       _pair(
         AppTextField(
           label: AppStrings.temperatureC,
+          hint: AppStrings.temperatureHint,
           prefixIcon: AppIcons.temperature,
           controller: _temperature,
           keyboardType: const TextInputType.numberWithOptions(signed: true),
@@ -297,6 +284,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
         ),
         AppTextField(
           label: AppStrings.pressureHpa,
+          hint: AppStrings.pressureHint,
           prefixIcon: AppIcons.pressure,
           controller: _pressure,
           keyboardType: TextInputType.number,
@@ -307,6 +295,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
       _pair(
         AppTextField(
           label: AppStrings.windSpeed,
+          hint: AppStrings.windSpeedHint,
           prefixIcon: AppIcons.wind,
           controller: _windSpeed,
           keyboardType: TextInputType.number,
@@ -345,6 +334,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
         Expanded(
           child: AppTextField(
             label: AppStrings.tackleName,
+            hint: AppStrings.tackleHint,
             controller: _tackleController,
             prefixIcon: AppIcons.tackle,
             textInputAction: TextInputAction.done,
@@ -462,7 +452,7 @@ class _CatchEditor extends StatelessWidget {
               Expanded(
                 child: AppTextField(
                   label: AppStrings.weightKg,
-                  hint: '0.0',
+                  hint: AppStrings.weightHint,
                   initialValue: draft.weight,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -480,6 +470,7 @@ class _CatchEditor extends StatelessWidget {
               Expanded(
                 child: AppTextField(
                   label: AppStrings.count,
+                  hint: AppStrings.countHint,
                   initialValue: draft.count,
                   keyboardType: TextInputType.number,
                   validator: (value) => draft.isBlank

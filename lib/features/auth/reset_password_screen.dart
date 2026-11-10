@@ -141,6 +141,7 @@ class _ResetPasswordFormState extends State<_ResetPasswordForm> {
           if (sentTo == null) ...[
             AppTextField(
               label: AppStrings.email,
+              hint: AppStrings.emailHint,
               controller: _email,
               enabled: !loading,
               prefixIcon: AppIcons.mail,

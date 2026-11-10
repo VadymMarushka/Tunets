@@ -104,6 +104,20 @@ abstract final class AppStrings {
   static const waterBody = 'Water body';
   static const waterBodyRequired = 'Water body *';
   static const waterBodyHint = 'e.g. Lake Svitiaz';
+
+  // Hints inside empty fields (placeholders)
+  static const nameHint = 'e.g. Vadym';
+  static const emailHint = 'e.g. name@example.com';
+  static const passwordEnterHint = 'Your password';
+  static const passwordNewHint = 'At least 8 characters';
+  static const passwordRepeatHint = 'Type the password again';
+  static const currentPasswordHint = 'Your current password';
+  static const temperatureHint = 'e.g. 14';
+  static const pressureHint = 'e.g. 1016';
+  static const windSpeedHint = 'e.g. 3';
+  static const tackleHint = 'e.g. Spinning rod 2.4 m';
+  static const weightHint = 'e.g. 1.5';
+  static const countHint = 'e.g. 1';
   static const waterBodyIsRequired = 'Water body is required';
   static const waterBodyTooLong = 'Water body must be at most 60 characters';
   static const temperatureC = 'Temperature, °C';

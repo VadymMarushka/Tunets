@@ -221,10 +221,14 @@ void main() {
         'Sh',
       );
       await tester.pumpAndSettle();
-      // Suggestions match the start of any word: "Sh" → "Shatsk ...".
-      expect(find.text('Shatsk Lake'), findsOneWidget);
+      // Like an address bar: names that start with the typed text.
+      expect(find.text('Shatsk Pond'), findsOneWidget);
       expect(find.text('Dnister River'), findsNothing);
-      await tester.enterText(find.widgetWithText(TextField, 'Sh'), 'dnis');
+      // "sv" is inside "Lake Svitiaz", not at the start: no suggestions.
+      await tester.enterText(find.widgetWithText(TextField, 'Sh'), 'sv');
+      await tester.pumpAndSettle();
+      expect(find.text('Lake Svitiaz'), findsNothing);
+      await tester.enterText(find.widgetWithText(TextField, 'sv'), 'dn');
       await tester.pumpAndSettle();
       await tester.tap(find.text('Dnister River'));
       await tester.pumpAndSettle();
@@ -380,6 +384,17 @@ void main() {
         // S-6 form
         await tapText(tester, 'Add trip');
         expect(find.text('Drag a photo here'), findsOneWidget);
+        // Water body suggestions work in the Fluent text box too.
+        final waterBox = find.ancestor(
+          of: find.text('e.g. Lake Svitiaz'),
+          matching: find.byType(fl.TextBox),
+        );
+        await tester.enterText(
+          find.descendant(of: waterBox, matching: find.byType(EditableText)),
+          'sh',
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Shatsk Pond'), findsOneWidget);
         await tester.tap(find.widgetWithText(fl.Button, 'Cancel'));
         await tester.pumpAndSettle();
 

@@ -58,8 +58,8 @@ class AppTextField extends StatefulWidget {
   final FormFieldValidator<String>? validator;
   final Iterable<String>? autofillHints;
 
-  /// Values offered while typing (matched by the start of any word,
-  /// ignoring case): "sh" → "Shatsk Lake". Empty = a plain field.
+  /// Values offered while typing, those that start with the typed text
+  /// (ignoring case): "sh" → "Shatsk Pond". Empty = a plain field.
   final List<String> suggestions;
 
   @override
@@ -82,17 +82,16 @@ class _AppTextFieldState extends State<AppTextField> {
     super.dispose();
   }
 
-  /// Suggestions with a word starting with the typed text, at most 6.
-  /// Nothing for an empty field or when the text already equals one.
+  /// Suggestions that start with the typed text (ignoring case), like a
+  /// browser's address bar; at most 6. Nothing for an empty field or when
+  /// the text already equals a suggestion.
   Iterable<String> _matches(TextEditingValue value) {
-    final query = value.text.trim().toLowerCase();
+    final query = value.text.trimLeft().toLowerCase();
     if (query.isEmpty) return const [];
     return widget.suggestions
         .where((option) {
           final lower = option.toLowerCase();
-          if (lower == query) return false;
-          return lower.startsWith(query) ||
-              lower.split(RegExp(r'\s+')).any((w) => w.startsWith(query));
+          return lower != query && lower.startsWith(query);
         })
         .take(6);
   }

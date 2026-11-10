@@ -132,6 +132,7 @@ class _RegisterFormState extends State<_RegisterForm> {
             const SizedBox(height: AppSpacing.l),
             AppTextField(
               label: AppStrings.name,
+              hint: AppStrings.nameHint,
               controller: _name,
               enabled: !loading,
               textInputAction: TextInputAction.next,
@@ -141,6 +142,7 @@ class _RegisterFormState extends State<_RegisterForm> {
             SizedBox(height: AuthLayout.fieldGap),
             AppTextField(
               label: AppStrings.email,
+              hint: AppStrings.emailHint,
               controller: _email,
               enabled: !loading,
               prefixIcon: AppIcons.mail,
@@ -152,6 +154,7 @@ class _RegisterFormState extends State<_RegisterForm> {
             SizedBox(height: AuthLayout.fieldGap),
             PasswordField(
               label: AppStrings.password,
+              hint: AppStrings.passwordNewHint,
               controller: _password,
               enabled: !loading,
               helperText: AppStrings.passwordHint,
@@ -162,6 +165,7 @@ class _RegisterFormState extends State<_RegisterForm> {
             SizedBox(height: AuthLayout.fieldGap),
             PasswordField(
               label: AppStrings.confirmPassword,
+              hint: AppStrings.passwordRepeatHint,
               controller: _confirm,
               enabled: !loading,
               textInputAction: TextInputAction.done,

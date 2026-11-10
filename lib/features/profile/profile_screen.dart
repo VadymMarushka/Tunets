@@ -273,6 +273,7 @@ class _PersonalInfoSectionState extends State<_PersonalInfoSection> {
           const SizedBox(height: AppSpacing.m),
           AppTextField(
             label: AppStrings.name,
+            hint: AppStrings.nameHint,
             controller: _name,
             enabled: !saving,
             textInputAction: TextInputAction.done,
@@ -284,6 +285,7 @@ class _PersonalInfoSectionState extends State<_PersonalInfoSection> {
             // Keyed by email so the field updates if the account changes.
             key: ValueKey(user.email),
             label: AppStrings.email,
+            hint: AppStrings.emailHint,
             initialValue: user.email,
             readOnly: true,
             suffixIcon: AppIcons.lock,
@@ -382,6 +384,7 @@ class _ChangePasswordSectionState extends State<_ChangePasswordSection> {
           children: [
             PasswordField(
               label: AppStrings.currentPassword,
+              hint: AppStrings.currentPasswordHint,
               controller: _current,
               enabled: !saving,
               autofillHints: const [AutofillHints.password],
@@ -390,6 +393,7 @@ class _ChangePasswordSectionState extends State<_ChangePasswordSection> {
             const SizedBox(height: AppSpacing.m),
             PasswordField(
               label: AppStrings.newPassword,
+              hint: AppStrings.passwordNewHint,
               controller: _new,
               enabled: !saving,
               helperText: AppStrings.passwordHint,
@@ -399,6 +403,7 @@ class _ChangePasswordSectionState extends State<_ChangePasswordSection> {
             const SizedBox(height: AppSpacing.m),
             PasswordField(
               label: AppStrings.confirmNewPassword,
+              hint: AppStrings.passwordRepeatHint,
               controller: _confirm,
               enabled: !saving,
               validator: Validators.confirmPassword(() => _new.text),

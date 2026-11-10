@@ -134,6 +134,7 @@ class _SignInFormState extends State<_SignInForm> {
             SizedBox(height: isFluent ? AppSpacing.m : AppSpacing.xl),
             AppTextField(
               label: AppStrings.email,
+              hint: AppStrings.emailHint,
               controller: _email,
               enabled: !loading,
               prefixIcon: AppIcons.mail,
@@ -145,6 +146,7 @@ class _SignInFormState extends State<_SignInForm> {
             SizedBox(height: AuthLayout.fieldGap),
             PasswordField(
               label: AppStrings.password,
+              hint: AppStrings.passwordEnterHint,
               controller: _password,
               enabled: !loading,
               textInputAction: TextInputAction.done,
