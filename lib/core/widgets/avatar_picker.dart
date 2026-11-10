@@ -125,10 +125,9 @@ class _AvatarPickerDialogState extends State<_AvatarPickerDialog> {
             // "Remove" lives here rather than among the dialog actions, so
             // the phone dialog keeps two actions in one row.
             Wrap(
-              // Windows (Fluent): centered under the grid; Android: left.
-              alignment: PlatformStyle.isFluent
-                  ? WrapAlignment.center
-                  : WrapAlignment.start,
+              // Centered under the grid on both platforms (each row of the
+              // wrap, so on a phone the buttons stack in the middle).
+              alignment: WrapAlignment.center,
               spacing: AppSpacing.s,
               runSpacing: AppSpacing.s,
               children: [
