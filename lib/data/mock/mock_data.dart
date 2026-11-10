@@ -7,8 +7,6 @@ abstract final class MockData {
   /// "Today" for the prototype, so filters and the summary match the mockup.
   static final today = DateTime(2026, 9, 29, 6, 30);
 
-  static const waterBodies = ['Lake Svitiaz', 'Dnister River', 'Shatsk Pond'];
-
   static const species = [
     'Pike',
     'Perch',

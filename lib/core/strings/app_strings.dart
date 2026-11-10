@@ -103,8 +103,9 @@ abstract final class AppStrings {
   static const time = 'Time';
   static const waterBody = 'Water body';
   static const waterBodyRequired = 'Water body *';
-  static const selectWaterBody = 'Select water body';
+  static const waterBodyHint = 'e.g. Lake Svitiaz';
   static const waterBodyIsRequired = 'Water body is required';
+  static const waterBodyTooLong = 'Water body must be at most 60 characters';
   static const temperatureC = 'Temperature, °C';
   static const pressureHpa = 'Pressure, hPa';
   static const windSpeed = 'Wind speed, m/s';

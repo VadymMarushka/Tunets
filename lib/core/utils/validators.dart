@@ -34,6 +34,15 @@ abstract final class Validators {
   static double? parseDecimal(String? value) =>
       double.tryParse((value ?? '').trim().replaceAll(',', '.'));
 
+  static const maxWaterBodyLength = 60;
+
+  static String? waterBody(String? value) {
+    final name = value?.trim() ?? '';
+    if (name.isEmpty) return AppStrings.waterBodyIsRequired;
+    if (name.length > maxWaterBodyLength) return AppStrings.waterBodyTooLong;
+    return null;
+  }
+
   static String? name(String? value) {
     final name = value?.trim() ?? '';
     if (name.isEmpty) return AppStrings.nameRequired;

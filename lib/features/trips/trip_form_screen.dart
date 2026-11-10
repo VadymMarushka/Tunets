@@ -63,7 +63,7 @@ class _CatchDraft {
 class _TripFormScreenState extends State<TripFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late DateTime _dateTime;
-  String? _waterBody;
+  late final TextEditingController _waterBody;
   String? _windDirection;
   late final List<String> _tackle;
   late final List<_CatchDraft> _catches;
@@ -85,7 +85,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
     _dateTime =
         trip?.dateTime ??
         DateTime(now.year, now.month, now.day, now.hour, now.minute);
-    _waterBody = trip?.waterBody;
+    _waterBody = TextEditingController(text: trip?.waterBody ?? '');
     final wind = weather?.windDirection ?? '';
     _windDirection = wind.isEmpty ? null : wind;
     _temperature = TextEditingController(
@@ -110,6 +110,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
   @override
   void dispose() {
     _tackleController.dispose();
+    _waterBody.dispose();
     _temperature.dispose();
     _pressure.dispose();
     _windSpeed.dispose();
@@ -128,7 +129,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
     setState(() => _showErrors = true);
     final fieldsValid = _formKey.currentState!.validate();
     final catchesValid = _catches.every((c) => c.isBlank || c.species != null);
-    if (_waterBody == null || !fieldsValid || !catchesValid) {
+    if (!fieldsValid || !catchesValid) {
       showNotice(context, AppStrings.fixFormErrors, kind: NoticeKind.error);
       return;
     }
@@ -137,7 +138,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
       // Editing keeps the id, so the bloc replaces the stored trip.
       id: widget.trip?.id ?? 'trip-${DateTime.now().microsecondsSinceEpoch}',
       dateTime: _dateTime,
-      waterBody: _waterBody!,
+      waterBody: _waterBody.text.trim(),
       weather: Weather(
         temperatureC: int.parse(_temperature.text.trim()),
         pressureHpa: int.parse(_pressure.text.trim()),
@@ -259,15 +260,13 @@ class _TripFormScreenState extends State<TripFormScreen> {
       ),
     ),
     const SizedBox(height: AppSpacing.m),
-    AppSelectField(
+    AppTextField(
       label: AppStrings.waterBodyRequired,
-      placeholder: AppStrings.selectWaterBody,
-      options: MockData.waterBodies,
-      value: _waterBody,
-      errorText: _showErrors && _waterBody == null
-          ? AppStrings.waterBodyIsRequired
-          : null,
-      onChanged: (value) => setState(() => _waterBody = value),
+      hint: AppStrings.waterBodyHint,
+      controller: _waterBody,
+      prefixIcon: AppIcons.waterBody,
+      textInputAction: TextInputAction.next,
+      validator: Validators.waterBody,
     ),
   ];
 

@@ -212,9 +212,14 @@ void main() {
       // S-6: fill in the form and save.
       await tester.tap(find.byType(FloatingActionButton).last);
       await tester.pumpAndSettle();
-      await tapText(tester, 'Select water body');
-      await tester.tap(find.text('Dnister River').last);
+      // Water body is a required text field.
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
       await tester.pumpAndSettle();
+      expect(find.text('Water body is required'), findsOneWidget);
+      await tester.enterText(
+        find.widgetWithText(TextField, 'e.g. Lake Svitiaz'),
+        '  Dnister River ',
+      );
       // A bad number keeps the form open.
       await tester.enterText(find.widgetWithText(TextField, '1016'), 'high');
       await tester.tap(find.widgetWithText(FilledButton, 'Save'));
@@ -234,9 +239,10 @@ void main() {
       expect(find.text('1020 hPa'), findsOneWidget);
       await tester.tap(find.byTooltip('Edit'));
       await tester.pumpAndSettle();
-      await tapText(tester, 'Dnister River');
-      await tester.tap(find.text('Shatsk Pond').last);
-      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Dnister River'),
+        'Shatsk Pond',
+      );
       await tester.tap(find.widgetWithText(FilledButton, 'Save'));
       await tester.pumpAndSettle();
       await flushNotices(tester);
