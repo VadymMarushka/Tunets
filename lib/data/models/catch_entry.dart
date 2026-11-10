@@ -6,6 +6,12 @@ class CatchEntry {
     required this.count,
   });
 
+  factory CatchEntry.fromJson(Map<String, dynamic> json) => CatchEntry(
+    species: json['species'] as String,
+    weightKg: (json['weightKg'] as num).toDouble(),
+    count: json['count'] as int,
+  );
+
   final String species;
 
   /// Weight of a single fish.
@@ -13,4 +19,10 @@ class CatchEntry {
   final int count;
 
   double get totalKg => weightKg * count;
+
+  Map<String, dynamic> toJson() => {
+    'species': species,
+    'weightKg': weightKg,
+    'count': count,
+  };
 }

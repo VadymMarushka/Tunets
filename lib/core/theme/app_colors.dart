@@ -1,4 +1,7 @@
-import 'package:flutter/widgets.dart';
+import 'package:fluent_ui/fluent_ui.dart' as fl;
+import 'package:flutter/material.dart';
+
+import '../platform/platform_style.dart';
 
 /// Color tokens shared by the Material and Fluent themes.
 ///
@@ -103,7 +106,15 @@ class AppPalette {
   static AppPalette forBrightness(Brightness brightness) =>
       brightness == Brightness.dark ? dark : light;
 
-  /// The theme follows the system setting, so the palette does too.
-  static AppPalette of(BuildContext context) =>
-      forBrightness(MediaQuery.platformBrightnessOf(context));
+  /// Palette of the active theme: the system setting or the mode picked in
+  /// Profile → Appearance (so not `platformBrightness` directly).
+  static AppPalette of(BuildContext context) {
+    // `a` is Windows (Fluent), `b` Android (Material 3).
+    final brightness = PlatformStyle.isFluent
+        ? fl.FluentTheme.maybeOf(context)?.brightness
+        : Theme.of(context).brightness;
+    return forBrightness(
+      brightness ?? MediaQuery.platformBrightnessOf(context),
+    );
+  }
 }

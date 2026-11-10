@@ -3,11 +3,13 @@
 // In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../app/app_routes.dart';
-import '../../app/app_services.dart';
+import '../../app/bloc/auth_bloc.dart';
+import '../../app/bloc/theme_bloc.dart';
 import '../../core/platform/platform_style.dart';
-import '../../core/services/analytics_service.dart';
+import '../../core/services/crash_reporter.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_spacing.dart';
@@ -20,25 +22,53 @@ import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/avatar_picker.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/dialogs.dart';
+import '../../core/widgets/filter_bar.dart';
 import '../../core/widgets/password_field.dart';
+import '../../core/widgets/progress.dart';
 import '../../core/widgets/section_header.dart';
-import '../../data/repositories/auth_failure.dart';
+import 'bloc/profile_bloc.dart';
 
-/// S-8. Profile (FR-2, FR-5): name and photo, password change, sign out.
-/// The phone number is a stub until cloud sync (Firestore) is added.
+/// S-8. Profile (FR-2, FR-5): name and photo, password change, theme,
+/// sign out. The phone number is a stub until cloud sync (Firestore).
+///
+/// Loading and saving the profile go through [ProfileBloc]; the theme
+/// through the app-wide [ThemeBloc] (saved on the device).
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  Future<void> _signOut(BuildContext context) async {
-    final services = AppServices.of(context);
-    services.analytics.logEvent(AnalyticsEvents.signOut);
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => ProfileBloc(
+        auth: context.read(),
+        analytics: context.read(),
+        crashes: context.read(),
+      )..add(const ProfileStarted()),
+      child: const _ProfileView(),
+    );
+  }
+}
+
+class _ProfileView extends StatelessWidget {
+  const _ProfileView();
+
+  void _signOut(BuildContext context) {
+    final auth = context.read<AuthBloc>();
     // Close pages opened over the shell; AuthGate then shows sign-in.
     context.returnToRoot();
-    await services.auth.signOut();
+    auth.add(const AuthSignOutRequested());
+  }
+
+  /// Shows the outcome of every profile request once, as a notice.
+  void _showResult(BuildContext context, ProfileState state) {
+    final result = state.result!;
+    showNotice(context, result.message, kind: result.kind);
   }
 
   @override
   Widget build(BuildContext context) {
+    final loading = context.select((ProfileBloc bloc) => bloc.state.isLoading);
+
     return AppPage(
       title: AppStrings.navProfile,
       actions: [
@@ -48,56 +78,82 @@ class ProfileScreen extends StatelessWidget {
           onPressed: () => _signOut(context),
         ),
       ],
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final twoColumns = constraints.maxWidth >= Breakpoints.twoColumns;
-          const personal = _PersonalInfoSection();
-          const password = _ChangePasswordSection();
-          const diagnostics = _DiagnosticsSection();
+      body: BlocListener<ProfileBloc, ProfileState>(
+        // Only the state that ends a request carries a result (the next
+        // request clears it), so each result is shown exactly once. Not
+        // `result != previous.result`: a repeated "nothing to save" is the
+        // same const object.
+        listenWhen: (previous, current) => current.result != null,
+        listener: _showResult,
+        child: loading
+            ? const Center(child: AppProgressIndicator())
+            : _buildSections(context),
+      ),
+    );
+  }
 
-          return SingleChildScrollView(
-            padding: pagePadding(),
-            child: ContentConstraint(
-              child: twoColumns
-                  ? const Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: personal),
-                            SizedBox(width: AppSpacing.l),
-                            Expanded(child: password),
-                          ],
-                        ),
-                        SizedBox(height: AppSpacing.l),
-                        diagnostics,
-                      ],
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        personal,
-                        const SizedBox(height: AppSpacing.l),
-                        password,
-                        const SizedBox(height: AppSpacing.l),
-                        diagnostics,
-                        if (!PlatformStyle.isFluent) ...[
-                          // Android (Material 3) only
-                          const SizedBox(height: AppSpacing.l),
-                          AppButton.danger(
-                            label: AppStrings.signOut,
-                            icon: AppIcons.signOut,
-                            expand: true,
-                            onPressed: () => _signOut(context),
+  Widget _buildSections(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final twoColumns = constraints.maxWidth >= Breakpoints.twoColumns;
+        const personal = _PersonalInfoSection();
+        const password = _ChangePasswordSection();
+        const appearance = _AppearanceSection();
+        const diagnostics = _DiagnosticsSection();
+
+        return SingleChildScrollView(
+          padding: pagePadding(),
+          child: ContentConstraint(
+            child: twoColumns
+                ? const Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: personal),
+                          SizedBox(width: AppSpacing.l),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                password,
+                                SizedBox(height: AppSpacing.l),
+                                appearance,
+                              ],
+                            ),
                           ),
                         ],
+                      ),
+                      SizedBox(height: AppSpacing.l),
+                      diagnostics,
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      personal,
+                      const SizedBox(height: AppSpacing.l),
+                      password,
+                      const SizedBox(height: AppSpacing.l),
+                      appearance,
+                      const SizedBox(height: AppSpacing.l),
+                      diagnostics,
+                      if (!PlatformStyle.isFluent) ...[
+                        // Android (Material 3) only
+                        const SizedBox(height: AppSpacing.l),
+                        AppButton.danger(
+                          label: AppStrings.signOut,
+                          icon: AppIcons.signOut,
+                          expand: true,
+                          onPressed: () => _signOut(context),
+                        ),
                       ],
-                    ),
-            ),
-          );
-        },
-      ),
+                    ],
+                  ),
+          ),
+        );
+      },
     );
   }
 }
@@ -125,32 +181,6 @@ class _Section extends StatelessWidget {
   }
 }
 
-/// Runs an auth request and shows its result: [success] on success,
-/// the [AuthFailure] message otherwise. Returns `true` on success.
-Future<bool> _runRequest(
-  BuildContext context,
-  Future<void> Function() request, {
-  required String success,
-  required String reason,
-}) async {
-  final services = AppServices.of(context);
-  try {
-    await request();
-    if (context.mounted) showNotice(context, success);
-    return true;
-  } on AuthFailure catch (e) {
-    if (context.mounted) {
-      showNotice(context, e.message, kind: NoticeKind.error);
-    }
-  } catch (e, stack) {
-    services.crashes.recordError(e, stack, reason: reason);
-    if (context.mounted) {
-      showNotice(context, AppStrings.unexpectedError, kind: NoticeKind.error);
-    }
-  }
-  return false;
-}
-
 class _PersonalInfoSection extends StatefulWidget {
   const _PersonalInfoSection();
 
@@ -160,9 +190,11 @@ class _PersonalInfoSection extends StatefulWidget {
 
 class _PersonalInfoSectionState extends State<_PersonalInfoSection> {
   final _formKey = GlobalKey<FormState>();
-  late final _name = TextEditingController(text: CurrentUser.of(context).name);
-  bool _saving = false;
-  bool _changingPhoto = false;
+
+  /// Built after the profile is loaded (the screen shows a spinner first).
+  late final _name = TextEditingController(
+    text: context.read<ProfileBloc>().state.user!.name,
+  );
 
   @override
   void dispose() {
@@ -170,48 +202,27 @@ class _PersonalInfoSectionState extends State<_PersonalInfoSection> {
     super.dispose();
   }
 
-  Future<void> _save() async {
-    if (_saving || !_formKey.currentState!.validate()) return;
-    if (_name.text.trim() == CurrentUser.of(context).name) {
-      showNotice(context, AppStrings.nameUnchanged, kind: NoticeKind.info);
-      return;
-    }
-    final services = AppServices.of(context);
-    setState(() => _saving = true);
-    final saved = await _runRequest(
-      context,
-      () => services.auth.updateProfile(displayName: _name.text),
-      success: AppStrings.profileSaved,
-      reason: 'update_profile',
-    );
-    if (saved) services.analytics.logEvent(AnalyticsEvents.profileUpdated);
-    if (mounted) setState(() => _saving = false);
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+    context.read<ProfileBloc>().add(ProfileNameSaved(_name.text));
   }
 
   Future<void> _changePhoto() async {
-    final services = AppServices.of(context);
+    final bloc = context.read<ProfileBloc>();
     final choice = await showAvatarPicker(
       context,
-      currentUrl: CurrentUser.of(context).photoUrl,
+      currentUrl: bloc.state.user?.photoUrl,
     );
-    if (choice == null || !mounted) return;
-    setState(() => _changingPhoto = true);
-    final url = choice.url;
-    final saved = await _runRequest(
-      context,
-      () => url == null
-          ? services.auth.updateProfile(clearPhoto: true)
-          : services.auth.updateProfile(photoUrl: url),
-      success: url == null ? AppStrings.photoRemoved : AppStrings.photoUpdated,
-      reason: 'update_photo',
-    );
-    if (saved) services.analytics.logEvent(AnalyticsEvents.profilePhotoChanged);
-    if (mounted) setState(() => _changingPhoto = false);
+    if (choice == null) return;
+    bloc.add(ProfilePhotoChanged(choice.url));
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = CurrentUser.of(context);
+    final state = context.watch<ProfileBloc>().state;
+    final user = state.user!;
+    final saving = state.action == ProfileAction.savingName;
+    final changingPhoto = state.action == ProfileAction.changingPhoto;
     final isFluent = PlatformStyle.isFluent;
 
     final photo = isFluent
@@ -226,7 +237,7 @@ class _PersonalInfoSectionState extends State<_PersonalInfoSection> {
                     AppButton.secondary(
                       label: AppStrings.changePhoto,
                       icon: AppIcons.photo,
-                      loading: _changingPhoto,
+                      loading: changingPhoto,
                       onPressed: _changePhoto,
                     ),
                     const SizedBox(height: AppSpacing.xs),
@@ -246,7 +257,7 @@ class _PersonalInfoSectionState extends State<_PersonalInfoSection> {
               AppButton.text(
                 label: AppStrings.changePhoto,
                 icon: AppIcons.camera,
-                loading: _changingPhoto,
+                loading: changingPhoto,
                 onPressed: _changePhoto,
               ),
             ],
@@ -263,7 +274,7 @@ class _PersonalInfoSectionState extends State<_PersonalInfoSection> {
           AppTextField(
             label: AppStrings.name,
             controller: _name,
-            enabled: !_saving,
+            enabled: !saving,
             textInputAction: TextInputAction.done,
             validator: Validators.name,
             onSubmitted: (_) => _save(),
@@ -292,7 +303,7 @@ class _PersonalInfoSectionState extends State<_PersonalInfoSection> {
             child: AppButton(
               label: AppStrings.saveChanges,
               expand: !isFluent,
-              loading: _saving,
+              loading: saving,
               onPressed: _save,
             ),
           ),
@@ -314,7 +325,6 @@ class _ChangePasswordSectionState extends State<_ChangePasswordSection> {
   final _current = TextEditingController();
   final _new = TextEditingController();
   final _confirm = TextEditingController();
-  bool _saving = false;
 
   @override
   void dispose() {
@@ -331,74 +341,115 @@ class _ChangePasswordSectionState extends State<_ChangePasswordSection> {
     return null;
   }
 
-  Future<void> _update() async {
-    if (_saving || !_formKey.currentState!.validate()) return;
-    final services = AppServices.of(context);
-    setState(() => _saving = true);
-    final changed = await _runRequest(
-      context,
-      () => services.auth.changePassword(
+  void _update() {
+    if (!_formKey.currentState!.validate()) return;
+    context.read<ProfileBloc>().add(
+      ProfilePasswordChangeRequested(
         currentPassword: _current.text,
         newPassword: _new.text,
       ),
-      success: AppStrings.passwordUpdated,
-      reason: 'change_password',
     );
-    if (changed) {
-      services.analytics.logEvent(AnalyticsEvents.passwordChanged);
-      _current.clear();
-      _new.clear();
-      _confirm.clear();
-      _formKey.currentState?.reset();
-    }
-    if (mounted) setState(() => _saving = false);
+  }
+
+  /// After a successful change the fields are cleared.
+  void _clear() {
+    _current.clear();
+    _new.clear();
+    _confirm.clear();
+    _formKey.currentState?.reset();
   }
 
   @override
   Widget build(BuildContext context) {
     final isFluent = PlatformStyle.isFluent;
-    return Form(
-      key: _formKey,
-      autovalidateMode: AutovalidateMode.onUserInteractionIfError,
-      child: _Section(
-        title: AppStrings.changePassword,
-        children: [
-          PasswordField(
-            label: AppStrings.currentPassword,
-            controller: _current,
-            enabled: !_saving,
-            autofillHints: const [AutofillHints.password],
-            validator: Validators.passwordEntered,
-          ),
-          const SizedBox(height: AppSpacing.m),
-          PasswordField(
-            label: AppStrings.newPassword,
-            controller: _new,
-            enabled: !_saving,
-            helperText: AppStrings.passwordHint,
-            autofillHints: const [AutofillHints.newPassword],
-            validator: _validateNew,
-          ),
-          const SizedBox(height: AppSpacing.m),
-          PasswordField(
-            label: AppStrings.confirmNewPassword,
-            controller: _confirm,
-            enabled: !_saving,
-            validator: Validators.confirmPassword(() => _new.text),
-            onSubmitted: (_) => _update(),
-          ),
-          const SizedBox(height: AppSpacing.l),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: AppButton(
-              label: AppStrings.updatePassword,
-              expand: !isFluent,
-              loading: _saving,
-              onPressed: _update,
+    final saving = context.select(
+      (ProfileBloc bloc) => bloc.state.action == ProfileAction.changingPassword,
+    );
+
+    return BlocListener<ProfileBloc, ProfileState>(
+      listenWhen: (previous, current) {
+        final result = current.result;
+        return result != null &&
+            result.action == ProfileAction.changingPassword &&
+            result.isSuccess;
+      },
+      listener: (context, state) => _clear(),
+      child: Form(
+        key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+        child: _Section(
+          title: AppStrings.changePassword,
+          children: [
+            PasswordField(
+              label: AppStrings.currentPassword,
+              controller: _current,
+              enabled: !saving,
+              autofillHints: const [AutofillHints.password],
+              validator: Validators.passwordEntered,
             ),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.m),
+            PasswordField(
+              label: AppStrings.newPassword,
+              controller: _new,
+              enabled: !saving,
+              helperText: AppStrings.passwordHint,
+              autofillHints: const [AutofillHints.newPassword],
+              validator: _validateNew,
+            ),
+            const SizedBox(height: AppSpacing.m),
+            PasswordField(
+              label: AppStrings.confirmNewPassword,
+              controller: _confirm,
+              enabled: !saving,
+              validator: Validators.confirmPassword(() => _new.text),
+              onSubmitted: (_) => _update(),
+            ),
+            const SizedBox(height: AppSpacing.l),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: AppButton(
+                label: AppStrings.updatePassword,
+                expand: !isFluent,
+                loading: saving,
+                onPressed: _update,
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+/// Theme: System / Light / Dark. The choice goes to [ThemeBloc], which
+/// saves it on the device (SharedPreferences), so it survives restarts.
+class _AppearanceSection extends StatelessWidget {
+  const _AppearanceSection();
+
+  static const _modes = [ThemeMode.system, ThemeMode.light, ThemeMode.dark];
+
+  @override
+  Widget build(BuildContext context) {
+    final mode = context.select((ThemeBloc bloc) => bloc.state.mode);
+    return _Section(
+      title: AppStrings.appearance,
+      children: [
+        Text(
+          AppStrings.appearanceHint,
+          style: AppTextStyles.secondary(context),
+        ),
+        const SizedBox(height: AppSpacing.m),
+        FilterBar(
+          labels: const [
+            AppStrings.themeSystem,
+            AppStrings.themeLight,
+            AppStrings.themeDark,
+          ],
+          selectedIndex: _modes.indexOf(mode),
+          onSelected: (index) =>
+              context.read<ThemeBloc>().add(ThemeModeChanged(_modes[index])),
+        ),
+      ],
     );
   }
 }
@@ -409,7 +460,7 @@ class _DiagnosticsSection extends StatelessWidget {
   const _DiagnosticsSection();
 
   Future<void> _sendTestError(BuildContext context) async {
-    final crashes = AppServices.of(context).crashes;
+    final crashes = context.read<CrashReporter>();
     await crashes.log('Test error requested from the Profile screen');
     try {
       throw StateError('Test non-fatal error from the Profile screen');
@@ -420,7 +471,7 @@ class _DiagnosticsSection extends StatelessWidget {
   }
 
   Future<void> _testCrash(BuildContext context) async {
-    final crashes = AppServices.of(context).crashes;
+    final crashes = context.read<CrashReporter>();
     final confirmed = await showConfirmDialog(
       context,
       title: AppStrings.testCrashTitle,

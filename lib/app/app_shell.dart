@@ -4,19 +4,23 @@
 
 import 'package:fluent_ui/fluent_ui.dart' as fl;
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../core/platform/platform_style.dart';
+import '../core/services/analytics_service.dart';
 import '../core/strings/app_strings.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_icons.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_text_styles.dart';
 import '../core/widgets/brand.dart';
+import '../core/widgets/dialogs.dart';
 import '../features/home/home_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/trips/bloc/trips_bloc.dart';
 import '../features/trips/trips_screen.dart';
 import 'app_routes.dart';
-import 'app_services.dart';
+import 'bloc/auth_bloc.dart';
 
 /// Main sections available after sign-in.
 enum AppTab { home, trips, profile }
@@ -91,7 +95,7 @@ class _AppShellState extends State<AppShell> {
 
   /// Screen views for analytics: one per section switch (home, trips...).
   void _logScreen(AppTab tab) =>
-      AppServices.of(context).analytics.logScreen(tab.name);
+      context.read<AnalyticsService>().logScreen(tab.name);
 
   Widget _rootPage(AppTab tab) => switch (tab) {
     AppTab.home => const HomeScreen(),
@@ -115,9 +119,19 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     return AppShellScope(
       selectTab: _selectTab,
-      child: PlatformStyle.isFluent
-          ? _buildFluent(context)
-          : _buildMaterial(context),
+      // One-off reaction to a state change: a trip couldn't be saved or
+      // deleted → notice (the list itself stays as it was).
+      child: BlocListener<TripsBloc, TripsState>(
+        listenWhen: (previous, current) =>
+            current.error != null &&
+            current.status != TripsStatus.failure &&
+            current.error != previous.error,
+        listener: (context, state) =>
+            showNotice(context, state.error!, kind: NoticeKind.error),
+        child: PlatformStyle.isFluent
+            ? _buildFluent(context)
+            : _buildMaterial(context),
+      ),
     );
   }
 
@@ -310,7 +324,7 @@ class _UserPaneFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = CurrentUser.of(context);
+    final user = context.currentUser;
     final palette = AppPalette.of(context);
 
     return LayoutBuilder(

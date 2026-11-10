@@ -27,6 +27,10 @@ abstract final class AppIcons {
       _pick(Icons.person, fl.FluentIcons.contact);
 
   static IconData get add => _pick(Icons.add, fl.FluentIcons.add);
+  static IconData get warning =>
+      _pick(Icons.error_outline, fl.FluentIcons.warning);
+  static IconData get themeMode =>
+      _pick(Icons.brightness_6_outlined, fl.FluentIcons.color);
   static IconData get edit => _pick(Icons.edit_outlined, fl.FluentIcons.edit);
   static IconData get delete =>
       _pick(Icons.delete_outline, fl.FluentIcons.delete);

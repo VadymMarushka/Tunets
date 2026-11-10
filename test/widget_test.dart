@@ -1,4 +1,7 @@
+import 'package:fishing_diary/core/widgets/trip_card.dart';
 import 'package:fishing_diary/data/models/user_profile.dart';
+import 'package:fishing_diary/data/repositories/settings_repository.dart';
+import 'package:fishing_diary/data/repositories/trips_repository.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fl;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +13,8 @@ import 'fakes.dart';
 /// layout overflow in the phone (Material) and desktop (Fluent) variants,
 /// forms validate input, and auth results switch screens.
 void main() {
+  setUp(initTestPrefs);
+
   Future<void> setWindow(WidgetTester tester, Size size) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -190,6 +195,111 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Recent trips'), findsOneWidget);
+    });
+
+    testWidgets('create a trip, edit it, then delete it (LR5)', (tester) async {
+      await setWindow(tester, const Size(412, 915));
+      await tester.pumpWidget(
+        testApp(auth: FakeAuthRepository(signedIn: _vadym)),
+      );
+      await tester.pumpAndSettle();
+
+      // Only this trip is dated today: "This month" shows nothing yet.
+      await tapText(tester, 'Trips');
+      await tapText(tester, 'This month');
+      expect(find.byType(TripCard), findsNothing);
+
+      // S-6: fill in the form and save.
+      await tester.tap(find.byType(FloatingActionButton).last);
+      await tester.pumpAndSettle();
+      await tapText(tester, 'Select water body');
+      await tester.tap(find.text('Dnister River').last);
+      await tester.pumpAndSettle();
+      // A bad number keeps the form open.
+      await tester.enterText(find.widgetWithText(TextField, '1016'), 'high');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      expect(find.text('Enter a whole number'), findsOneWidget);
+      await tester.enterText(find.widgetWithText(TextField, 'high'), '1020');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await flushNotices(tester);
+
+      // Back on the list: the new trip is there (TripsBloc → repository).
+      expect(find.byType(TripCard), findsOneWidget);
+      expect(find.text('Dnister River'), findsOneWidget);
+
+      // S-7 → Edit: change the water body; details update right away.
+      await tapText(tester, 'Dnister River');
+      expect(find.text('1020 hPa'), findsOneWidget);
+      await tester.tap(find.byTooltip('Edit'));
+      await tester.pumpAndSettle();
+      await tapText(tester, 'Dnister River');
+      await tester.tap(find.text('Shatsk Pond').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await flushNotices(tester);
+      expect(find.text('Shatsk Pond'), findsOneWidget);
+
+      // Delete with confirmation: back to the list, the trip is gone.
+      await tester.tap(find.byTooltip('Delete'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+      await tester.pumpAndSettle();
+      await flushNotices(tester);
+      expect(find.byType(TripCard), findsNothing);
+    });
+
+    testWidgets('trips that fail to load show Retry', (tester) async {
+      await setWindow(tester, const Size(412, 915));
+      final trips = FakeTripsRepository()
+        ..failWith = const TripsFailure('Disk is not available.');
+      await tester.pumpWidget(
+        testApp(
+          auth: FakeAuthRepository(signedIn: _vadym),
+          trips: trips,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tapText(tester, 'Trips');
+      expect(find.text("Couldn't load your trips"), findsOneWidget);
+      expect(find.text('Disk is not available.'), findsOneWidget);
+
+      trips.failWith = null;
+      await tapText(tester, 'Retry');
+      expect(find.byType(TripCard), findsWidgets);
+      expect(find.text("Couldn't load your trips"), findsNothing);
+    });
+
+    testWidgets('theme picked in Profile is applied and saved', (tester) async {
+      await setWindow(tester, const Size(412, 915));
+      await tester.pumpWidget(
+        testApp(auth: FakeAuthRepository(signedIn: _vadym)),
+      );
+      await tester.pumpAndSettle();
+      ThemeMode appMode() =>
+          tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode!;
+      expect(appMode(), ThemeMode.system);
+
+      await tapText(tester, 'Profile');
+      await tester.ensureVisible(find.widgetWithText(FilterChip, 'Dark'));
+      await tester.tap(find.widgetWithText(FilterChip, 'Dark'));
+      await tester.pumpAndSettle();
+
+      expect(appMode(), ThemeMode.dark);
+      expect(testPrefs.getString(SettingsRepository.themeModeKey), 'dark');
+    });
+
+    testWidgets('saved theme is used from the first frame', (tester) async {
+      await initTestPrefs({SettingsRepository.themeModeKey: 'light'});
+      await tester.pumpWidget(testApp());
+      expect(
+        tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
+        ThemeMode.light,
+      );
+      await tester.pumpAndSettle();
     });
   });
 

@@ -124,7 +124,13 @@ abstract final class AppStrings {
   static const cancel = 'Cancel';
   static const remove = 'Remove';
   static const tripSaved = 'Trip saved';
-  static const fillRequiredField = 'Fill in the required field marked below.';
+  static const fixFormErrors = 'Fix the fields marked below.';
+  static const numberRequired = 'Enter a number';
+  static const wholeNumberRequired = 'Enter a whole number';
+  static const mustBePositive = 'Must be greater than 0';
+  static const speciesRequired = 'Select the species';
+  static const tripsLoadFailed = "Couldn't load your trips";
+  static const retry = 'Retry';
 
   // Photos (FR-5, UI only in this lab)
   static const addPhoto = 'Add photo';
@@ -184,6 +190,14 @@ abstract final class AppStrings {
 
   // Errors
   static const unexpectedError = 'Something went wrong. Please try again.';
+
+  // Appearance (theme mode, saved on the device)
+  static const appearance = 'Appearance';
+  static const appearanceHint =
+      'Theme of the app on this device. "System" follows your OS setting.';
+  static const themeSystem = 'System';
+  static const themeLight = 'Light';
+  static const themeDark = 'Dark';
 
   // Diagnostics (LR4: crash reporting check)
   static const diagnostics = 'Diagnostics';

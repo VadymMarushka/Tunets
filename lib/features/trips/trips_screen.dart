@@ -3,6 +3,7 @@
 // In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../app/app_routes.dart';
 import '../../core/platform/platform_style.dart';
@@ -14,16 +15,21 @@ import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_page.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/filter_bar.dart';
+import '../../core/widgets/progress.dart';
 import '../../core/widgets/section_header.dart';
 import '../../core/widgets/trip_card.dart';
-import '../../data/mock/mock_data.dart';
 import '../../data/models/trip.dart';
+import 'bloc/trips_bloc.dart';
 import 'trip_details_screen.dart';
 import 'trip_form_screen.dart';
 
 enum _TripFilter { all, thisMonth, thisYear }
 
 /// S-5. Trips list (FR-4) with search by water body and period filters.
+///
+/// The trips come from [TripsBloc] (app state, shared with Home and the
+/// details). Search text, filter and the selected trip belong to this
+/// screen only (ephemeral state), so they live in `setState`.
 ///
 /// Narrow: a single list, tapping a trip opens [TripDetailsScreen].
 /// Wide (≥ 760 px of content): master–detail — list on the left, details of
@@ -38,12 +44,14 @@ class TripsScreen extends StatefulWidget {
 class _TripsScreenState extends State<TripsScreen> {
   String _query = '';
   _TripFilter _filter = _TripFilter.all;
-  Trip? _selected = MockData.trips.first;
 
-  List<Trip> get _visibleTrips {
-    final today = MockData.today;
+  /// Selected trip in the master–detail layout; `null` = the newest one.
+  String? _selectedId;
+
+  List<Trip> _visible(List<Trip> trips) {
+    final today = DateTime.now();
     final query = _query.trim().toLowerCase();
-    return MockData.trips.where((trip) {
+    return trips.where((trip) {
       final matchesQuery =
           query.isEmpty || trip.waterBody.toLowerCase().contains(query);
       final date = trip.dateTime;
@@ -62,8 +70,6 @@ class _TripsScreenState extends State<TripsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final trips = _visibleTrips;
-
     return AppPage(
       title: AppStrings.navTrips,
       floatingAction: PageAction(
@@ -72,44 +78,71 @@ class _TripsScreenState extends State<TripsScreen> {
         primary: true,
         onPressed: _openForm,
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final masterDetail = constraints.maxWidth >= Breakpoints.masterDetail;
-          final list = _buildList(context, trips, masterDetail: masterDetail);
-          if (!masterDetail) return list;
+      body: BlocBuilder<TripsBloc, TripsState>(
+        builder: (context, state) {
+          if (state.status == TripsStatus.failure) {
+            return _LoadError(message: state.error);
+          }
+          final loading =
+              state.status == TripsStatus.loading && state.trips.isEmpty;
+          final trips = _visible(state.trips);
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final masterDetail =
+                  constraints.maxWidth >= Breakpoints.masterDetail;
+              final list = _buildList(
+                context,
+                trips,
+                loading: loading,
+                masterDetail: masterDetail,
+              );
+              if (!masterDetail) return list;
 
-          final selected = trips.contains(_selected) ? _selected : null;
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(width: AppSizes.masterPane, child: list),
-              Expanded(
-                child: selected == null
-                    ? const EmptyState(
-                        icon: Icon(Icons.touch_app_outlined),
-                        title: AppStrings.tripDetails,
-                        message: AppStrings.selectTripHint,
-                      )
-                    : _DetailsPane(
-                        trip: selected,
-                        onEdit: () => _openForm(selected),
-                      ),
-              ),
-            ],
+              final selected = _selectedTrip(trips);
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(width: AppSizes.masterPane, child: list),
+                  Expanded(
+                    child: selected == null
+                        ? const EmptyState(
+                            icon: Icon(Icons.touch_app_outlined),
+                            title: AppStrings.tripDetails,
+                            message: AppStrings.selectTripHint,
+                          )
+                        : _DetailsPane(
+                            trip: selected,
+                            onEdit: () => _openForm(selected),
+                          ),
+                  ),
+                ],
+              );
+            },
           );
         },
       ),
     );
   }
 
+  /// The selected trip if it's still in the (filtered) list, otherwise the
+  /// first one.
+  Trip? _selectedTrip(List<Trip> trips) {
+    for (final trip in trips) {
+      if (trip.id == _selectedId) return trip;
+    }
+    return trips.isEmpty ? null : trips.first;
+  }
+
   Widget _buildList(
     BuildContext context,
     List<Trip> trips, {
+    required bool loading,
     required bool masterDetail,
   }) {
     final padding = pagePadding(
       bottom: PlatformStyle.isFluent ? AppSpacing.l : 96,
     );
+    final selectedId = masterDetail ? _selectedTrip(trips)?.id : null;
     return CustomScrollView(
       slivers: [
         SliverPadding(
@@ -132,7 +165,7 @@ class _TripsScreenState extends State<TripsScreen> {
                 onSelected: (index) =>
                     setState(() => _filter = _TripFilter.values[index]),
               ),
-              if (PlatformStyle.isFluent) ...[
+              if (PlatformStyle.isFluent && !loading) ...[
                 // Windows (Fluent) only
                 const SizedBox(height: AppSpacing.s),
                 Text(
@@ -143,7 +176,12 @@ class _TripsScreenState extends State<TripsScreen> {
             ],
           ),
         ),
-        if (trips.isEmpty)
+        if (loading)
+          const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: AppProgressIndicator()),
+          )
+        else if (trips.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
             child: _EmptyTrips(
@@ -161,10 +199,12 @@ class _TripsScreenState extends State<TripsScreen> {
                 final trip = trips[index];
                 return TripCard(
                   trip: trip,
-                  selected: masterDetail && trip == _selected,
+                  selected: trip.id == selectedId,
                   onTap: masterDetail
-                      ? () => setState(() => _selected = trip)
-                      : () => context.pushPage(TripDetailsScreen(trip: trip)),
+                      ? () => setState(() => _selectedId = trip.id)
+                      : () => context.pushPage(
+                          TripDetailsScreen(tripId: trip.id),
+                        ),
                 );
               },
             ),
@@ -202,6 +242,26 @@ class _EmptyTrips extends StatelessWidget {
   }
 }
 
+/// The list couldn't be loaded: the reason and a Retry button.
+class _LoadError extends StatelessWidget {
+  const _LoadError({required this.message});
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    return EmptyState(
+      icon: Icon(AppIcons.warning),
+      title: AppStrings.tripsLoadFailed,
+      message: message ?? AppStrings.unexpectedError,
+      action: AppButton(
+        label: AppStrings.retry,
+        onPressed: () => context.read<TripsBloc>().add(const TripsRequested()),
+      ),
+    );
+  }
+}
+
 /// Right side of the master–detail layout.
 class _DetailsPane extends StatelessWidget {
   const _DetailsPane({required this.trip, required this.onEdit});
@@ -225,7 +285,7 @@ class _DetailsPane extends StatelessWidget {
                 label: AppStrings.open,
                 icon: AppIcons.open,
                 onPressed: () =>
-                    context.pushPage(TripDetailsScreen(trip: trip)),
+                    context.pushPage(TripDetailsScreen(tripId: trip.id)),
               ),
               AppButton.text(
                 label: AppStrings.edit,
@@ -235,7 +295,7 @@ class _DetailsPane extends StatelessWidget {
               AppButton.danger(
                 label: AppStrings.delete,
                 icon: AppIcons.delete,
-                onPressed: () => confirmDeleteTrip(context),
+                onPressed: () => confirmDeleteTrip(context, trip),
               ),
             ],
           ),
