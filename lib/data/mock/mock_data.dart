@@ -1,11 +1,25 @@
 import '../models/catch_entry.dart';
 import '../models/trip.dart';
 
-/// Hardcoded trips for the UI until cloud storage (Firestore) is added.
+/// Hardcoded data: demo trips for a new user and reference lists.
 /// The user comes from Firebase Authentication since LR4.
 abstract final class MockData {
-  /// "Today" for the prototype, so filters and the summary match the mockup.
-  static final today = DateTime(2026, 9, 29, 6, 30);
+  /// Water bodies offered while typing in the trip form (together with the
+  /// ones from the user's own trips). Will come from the database later.
+  static const waterBodySuggestions = [
+    'Lake Svitiaz',
+    'Shatsk Lake',
+    'Shatsk Pond',
+    'Lake Pulemetske',
+    'Lake Synevyr',
+    'Dnister River',
+    'Dnipro River',
+    'Desna River',
+    'Southern Bug River',
+    'Tysa River',
+    'Kyiv Reservoir',
+    'Kakhovka Reservoir',
+  ];
 
   static const species = [
     'Pike',

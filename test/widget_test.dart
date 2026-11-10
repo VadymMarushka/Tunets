@@ -218,8 +218,17 @@ void main() {
       expect(find.text('Water body is required'), findsOneWidget);
       await tester.enterText(
         find.widgetWithText(TextField, 'e.g. Lake Svitiaz'),
-        '  Dnister River ',
+        'Sh',
       );
+      await tester.pumpAndSettle();
+      // Suggestions match the start of any word: "Sh" → "Shatsk ...".
+      expect(find.text('Shatsk Lake'), findsOneWidget);
+      expect(find.text('Dnister River'), findsNothing);
+      await tester.enterText(find.widgetWithText(TextField, 'Sh'), 'dnis');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Dnister River'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(TextField, 'Dnister River'), findsOneWidget);
       // A bad number keeps the form open.
       await tester.enterText(find.widgetWithText(TextField, '1016'), 'high');
       await tester.tap(find.widgetWithText(FilledButton, 'Save'));

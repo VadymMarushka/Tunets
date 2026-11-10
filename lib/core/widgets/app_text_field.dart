@@ -35,6 +35,7 @@ class AppTextField extends StatefulWidget {
     this.onSubmitted,
     this.validator,
     this.autofillHints,
+    this.suggestions = const [],
   });
 
   final String label;
@@ -57,6 +58,10 @@ class AppTextField extends StatefulWidget {
   final FormFieldValidator<String>? validator;
   final Iterable<String>? autofillHints;
 
+  /// Values offered while typing (matched by the start of any word,
+  /// ignoring case): "sh" → "Shatsk Lake". Empty = a plain field.
+  final List<String> suggestions;
+
   @override
   State<AppTextField> createState() => _AppTextFieldState();
 }
@@ -68,10 +73,60 @@ class _AppTextFieldState extends State<AppTextField> {
 
   TextEditingController get _controller => widget.controller ?? _ownController;
 
+  final _focusNode = FocusNode();
+
   @override
   void dispose() {
     _ownController.dispose();
+    _focusNode.dispose();
     super.dispose();
+  }
+
+  /// Suggestions with a word starting with the typed text, at most 6.
+  /// Nothing for an empty field or when the text already equals one.
+  Iterable<String> _matches(TextEditingValue value) {
+    final query = value.text.trim().toLowerCase();
+    if (query.isEmpty) return const [];
+    return widget.suggestions
+        .where((option) {
+          final lower = option.toLowerCase();
+          if (lower == query) return false;
+          return lower.startsWith(query) ||
+              lower.split(RegExp(r'\s+')).any((w) => w.startsWith(query));
+        })
+        .take(6);
+  }
+
+  /// Enter: picks the highlighted suggestion if the list is open, then
+  /// calls [AppTextField.onSubmitted].
+  void _submit(String value, VoidCallback? onSubmitSuggestion) {
+    onSubmitSuggestion?.call();
+    widget.onSubmitted?.call(_controller.text);
+  }
+
+  /// The platform field, plus the suggestion list under it when
+  /// [AppTextField.suggestions] isn't empty.
+  Widget _buildInput(
+    BuildContext context,
+    String? errorText,
+    ValueChanged<String> onChanged,
+  ) {
+    Widget field({VoidCallback? onSubmitSuggestion}) => PlatformStyle.isFluent
+        ? _buildFluent(context, errorText, onChanged, onSubmitSuggestion)
+        : _buildMaterial(context, errorText, onChanged, onSubmitSuggestion);
+
+    if (widget.suggestions.isEmpty) return field();
+    return RawAutocomplete<String>(
+      textEditingController: _controller,
+      focusNode: _focusNode,
+      optionsBuilder: _matches,
+      // Keep the form field (validation) in step with the picked value.
+      onSelected: onChanged,
+      fieldViewBuilder: (context, _, _, onFieldSubmitted) =>
+          field(onSubmitSuggestion: onFieldSubmitted),
+      optionsViewBuilder: (context, onSelected, options) =>
+          _SuggestionList(options: options.toList(), onSelected: onSelected),
+    );
   }
 
   @override
@@ -94,9 +149,7 @@ class _AppTextFieldState extends State<AppTextField> {
           errorText: errorText,
           // Material shows helper/error inside its decoration.
           showMessages: PlatformStyle.isFluent,
-          child: PlatformStyle.isFluent
-              ? _buildFluent(context, errorText, onChanged)
-              : _buildMaterial(context, errorText, onChanged),
+          child: _buildInput(context, errorText, onChanged),
         );
       },
     );
@@ -108,10 +161,12 @@ class _AppTextFieldState extends State<AppTextField> {
     BuildContext context,
     String? errorText,
     ValueChanged<String> onChanged,
+    VoidCallback? onSubmitSuggestion,
   ) {
     final palette = AppPalette.of(context);
     return TextField(
       controller: _controller,
+      focusNode: _focusNode,
       readOnly: widget.readOnly,
       enabled: widget.enabled,
       autofillHints: widget.autofillHints,
@@ -120,7 +175,7 @@ class _AppTextFieldState extends State<AppTextField> {
       maxLines: widget.maxLines,
       minLines: widget.maxLines > 1 ? 3 : null,
       onChanged: onChanged,
-      onSubmitted: widget.onSubmitted,
+      onSubmitted: (value) => _submit(value, onSubmitSuggestion),
       style: widget.readOnly ? TextStyle(color: palette.secondaryText) : null,
       decoration: InputDecoration(
         hintText: widget.hint,
@@ -144,6 +199,7 @@ class _AppTextFieldState extends State<AppTextField> {
     BuildContext context,
     String? errorText,
     ValueChanged<String> onChanged,
+    VoidCallback? onSubmitSuggestion,
   ) {
     final palette = AppPalette.of(context);
     final errorColor = errorText != null ? palette.error : null;
@@ -157,6 +213,7 @@ class _AppTextFieldState extends State<AppTextField> {
           );
     return fl.TextBox(
       controller: _controller,
+      focusNode: _focusNode,
       readOnly: widget.readOnly,
       enabled: widget.enabled && !widget.readOnly,
       autofillHints: widget.autofillHints,
@@ -166,7 +223,7 @@ class _AppTextFieldState extends State<AppTextField> {
       minLines: widget.maxLines > 1 ? 3 : null,
       placeholder: widget.hint,
       onChanged: onChanged,
-      onSubmitted: widget.onSubmitted,
+      onSubmitted: (value) => _submit(value, onSubmitSuggestion),
       // Red underline while the field has a validation error.
       highlightColor: errorColor,
       unfocusedColor: errorColor,
@@ -177,6 +234,65 @@ class _AppTextFieldState extends State<AppTextField> {
       suffix: decorate(
         widget.suffixIcon,
         const EdgeInsetsDirectional.only(end: AppSpacing.sm),
+      ),
+    );
+  }
+}
+
+/// Drop-down under a field with suggestions. Shared look on both
+/// platforms (a card like the app's others); the option chosen with the
+/// arrow keys is highlighted, which matters on Windows.
+class _SuggestionList extends StatelessWidget {
+  const _SuggestionList({required this.options, required this.onSelected});
+
+  final List<String> options;
+  final AutocompleteOnSelected<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
+    final isFluent = PlatformStyle.isFluent;
+    final highlighted = AutocompleteHighlightedOption.of(context);
+    final radius = isFluent ? AppRadius.fluent : AppRadius.material;
+
+    return Align(
+      alignment: AlignmentDirectional.topStart,
+      child: Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.xs),
+        child: Material(
+          color: palette.surface,
+          elevation: 4,
+          shadowColor: Colors.black38,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radius),
+            side: BorderSide(color: palette.layerBorder),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 240),
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+              shrinkWrap: true,
+              itemCount: options.length,
+              itemBuilder: (context, index) {
+                final option = options[index];
+                return InkWell(
+                  onTap: () => onSelected(option),
+                  hoverColor: palette.subtleHover,
+                  child: Container(
+                    color: index == highlighted ? palette.subtleHover : null,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppSpacing.m,
+                      // Touch targets of at least 48 px on Android.
+                      vertical: isFluent ? AppSpacing.s : AppSpacing.sm,
+                    ),
+                    child: Text(option, style: AppTextStyles.body(context)),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
       ),
     );
   }

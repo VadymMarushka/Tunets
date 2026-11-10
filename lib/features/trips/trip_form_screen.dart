@@ -267,8 +267,23 @@ class _TripFormScreenState extends State<TripFormScreen> {
       prefixIcon: AppIcons.waterBody,
       textInputAction: TextInputAction.next,
       validator: Validators.waterBody,
+      suggestions: _waterBodySuggestions(),
     ),
   ];
+
+  /// The user's own water bodies (most recent first), then the hardcoded
+  /// list, without repeats.
+  List<String> _waterBodySuggestions() {
+    final trips = context.read<TripsBloc>().state.trips;
+    final seen = <String>{};
+    return [
+      for (final name in [
+        ...trips.map((t) => t.waterBody),
+        ...MockData.waterBodySuggestions,
+      ])
+        if (seen.add(name.toLowerCase())) name,
+    ];
+  }
 
   List<Widget> _weatherFields() {
     return [
