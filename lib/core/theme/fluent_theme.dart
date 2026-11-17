@@ -46,7 +46,10 @@ FluentThemeData buildFluentTheme(Brightness brightness) {
       backgroundColor: p.subtleHover,
     ),
     navigationPaneTheme: NavigationPaneThemeData(
-      backgroundColor: p.mica.first,
+      // Transparent: the pane shows the window's mica gradient, the same
+      // as the title bar (WindowFrame). The pane opened over the content
+      // needs a solid color.
+      backgroundColor: const Color(0x00000000),
       overlayBackgroundColor: p.mica.first,
       highlightColor: p.primary,
     ),

@@ -135,50 +135,59 @@ class AppPage extends StatelessWidget {
     final allActions = [?floatingAction, ...actions];
 
     return fl.ScaffoldPage(
-      header: fl.PageHeader(
-        leading: navigator.canPop()
-            ? Padding(
-                padding: const EdgeInsetsDirectional.only(end: AppSpacing.s),
-                child: AppIconButton(
-                  icon: AppIcons.back,
-                  tooltip: AppStrings.back,
-                  onPressed: navigator.maybePop,
+      // Page sits right on the content layer (mockup): no padding around
+      // the body, which has its own (pagePadding), so the body scrolls up to
+      // the layer's edges; the header gets the same side inset.
+      padding: const EdgeInsetsDirectional.only(top: AppSpacing.l),
+      // Also for pages opened over the whole window (trip form).
+      backgroundColor: palette.layer,
+      header: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+        child: fl.PageHeader(
+          leading: navigator.canPop()
+              ? Padding(
+                  padding: const EdgeInsetsDirectional.only(end: AppSpacing.s),
+                  child: AppIconButton(
+                    icon: AppIcons.back,
+                    tooltip: AppStrings.back,
+                    onPressed: navigator.maybePop,
+                  ),
+                )
+              : null,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (parentTitle != null)
+                Text(
+                  '$parentTitle  ›  $title',
+                  style: AppTextStyles.caption(context),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              )
-            : null,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (parentTitle != null)
-              Text(
-                '$parentTitle  ›  $title',
-                style: AppTextStyles.caption(context),
-                overflow: TextOverflow.ellipsis,
-              ),
-            Text(title, overflow: TextOverflow.ellipsis),
-          ],
-        ),
-        commandBar: Wrap(
-          spacing: AppSpacing.s,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            ?fluentHeaderExtra,
-            for (final action in allActions)
-              AppButton(
-                label: action.label,
-                icon: action.icon,
-                variant: action.primary
-                    ? AppButtonVariant.primary
-                    : action.destructive
-                    ? AppButtonVariant.danger
-                    : AppButtonVariant.secondary,
-                onPressed: action.onPressed,
-              ),
-          ],
+              Text(title, overflow: TextOverflow.ellipsis),
+            ],
+          ),
+          commandBar: Wrap(
+            spacing: AppSpacing.s,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              ?fluentHeaderExtra,
+              for (final action in allActions)
+                AppButton(
+                  label: action.label,
+                  icon: action.icon,
+                  variant: action.primary
+                      ? AppButtonVariant.primary
+                      : action.destructive
+                      ? AppButtonVariant.danger
+                      : AppButtonVariant.secondary,
+                  onPressed: action.onPressed,
+                ),
+            ],
+          ),
         ),
       ),
-      content: ColoredBox(color: palette.background, child: body),
+      content: body,
     );
   }
 }
