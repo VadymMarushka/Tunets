@@ -17,4 +17,18 @@ class UserProfile {
   final String? photoUrl;
 
   String get initial => name.isEmpty ? '?' : name[0].toUpperCase();
+
+  // Value equality: widgets that select the user rebuild only when
+  // something they show has actually changed.
+  @override
+  bool operator ==(Object other) =>
+      other is UserProfile &&
+      other.uid == uid &&
+      other.name == name &&
+      other.email == email &&
+      other.phone == phone &&
+      other.photoUrl == photoUrl;
+
+  @override
+  int get hashCode => Object.hash(uid, name, email, phone, photoUrl);
 }

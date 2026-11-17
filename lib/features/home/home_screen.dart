@@ -3,10 +3,11 @@
 // In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../app/app_routes.dart';
-import '../../app/app_services.dart';
 import '../../app/app_shell.dart';
+import '../../app/bloc/auth_bloc.dart';
 import '../../core/platform/platform_style.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/theme/app_icons.dart';
@@ -18,11 +19,11 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_page.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/info_chips.dart';
+import '../../core/widgets/progress.dart';
 import '../../core/widgets/section_header.dart';
 import '../../core/widgets/stat_tile.dart';
 import '../../core/widgets/trip_card.dart';
-import '../../data/mock/mock_data.dart';
-import '../../data/models/trip.dart';
+import '../trips/bloc/trips_bloc.dart';
 import '../trips/trip_details_screen.dart';
 import '../trips/trip_form_screen.dart';
 
@@ -43,8 +44,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFluent = PlatformStyle.isFluent;
-    final user = CurrentUser.of(context);
-    final recent = MockData.trips.take(_recentCount).toList();
+    final user = context.currentUser;
     final addTrip = PageAction(
       label: AppStrings.addTrip,
       icon: AppIcons.add,
@@ -77,7 +77,7 @@ class HomeScreen extends StatelessWidget {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= Breakpoints.twoColumns;
-          final tripsColumn = _RecentTrips(trips: recent);
+          const tripsColumn = _RecentTrips(count: _recentCount);
 
           return SingleChildScrollView(
             padding: pagePadding(bottom: isFluent ? AppSpacing.l : 96),
@@ -88,7 +88,7 @@ class HomeScreen extends StatelessWidget {
                   Text(
                     AppStrings.greeting(_salutation(), user.name),
                     style: isFluent
-                        ? AppTextStyles.subtitle(context)
+                        ? AppTextStyles.title(context)
                         : AppTextStyles.headline(context),
                   ),
                   if (!isFluent) ...[
@@ -101,11 +101,11 @@ class HomeScreen extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: tripsColumn),
+                        const Expanded(child: tripsColumn),
                         const SizedBox(width: AppSpacing.l),
-                        SizedBox(
+                        const SizedBox(
                           width: AppSizes.summaryPane,
-                          child: _SummaryCard(trips: MockData.trips),
+                          child: _SummaryCard(),
                         ),
                       ],
                     )
@@ -121,10 +121,12 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+/// The [count] newest trips from [TripsBloc] (FR-3), or a loading / empty
+/// state.
 class _RecentTrips extends StatelessWidget {
-  const _RecentTrips({required this.trips});
+  const _RecentTrips({required this.count});
 
-  final List<Trip> trips;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
@@ -141,13 +143,42 @@ class _RecentTrips extends StatelessWidget {
                 AppShellScope.maybeOf(context)?.selectTab(AppTab.trips),
           ),
         ),
-        for (final trip in trips) ...[
-          TripCard(
-            trip: trip,
-            onTap: () => context.pushPage(TripDetailsScreen(trip: trip)),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-        ],
+        BlocBuilder<TripsBloc, TripsState>(
+          builder: (context, state) {
+            if (state.status == TripsStatus.loading && state.trips.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.all(AppSpacing.xl),
+                child: Center(child: AppProgressIndicator()),
+              );
+            }
+            if (state.trips.isEmpty) {
+              return EmptyState(
+                icon: const FishIcon(),
+                title: AppStrings.noTripsYet,
+                message: AppStrings.homeEmptyMessage,
+                action: AppButton(
+                  label: AppStrings.addFirstTrip,
+                  icon: AppIcons.add,
+                  onPressed: () =>
+                      context.pushFullScreen(const TripFormScreen()),
+                ),
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final trip in state.trips.take(count)) ...[
+                  TripCard(
+                    trip: trip,
+                    onTap: () =>
+                        context.pushPage(TripDetailsScreen(tripId: trip.id)),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                ],
+              ],
+            );
+          },
+        ),
       ],
     );
   }
@@ -155,13 +186,12 @@ class _RecentTrips extends StatelessWidget {
 
 /// Month summary: trips count, total catch weight and the best fish.
 class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.trips});
-
-  final List<Trip> trips;
+  const _SummaryCard();
 
   @override
   Widget build(BuildContext context) {
-    final month = MockData.today;
+    final trips = context.select((TripsBloc bloc) => bloc.state.trips);
+    final month = DateTime.now();
     final monthTrips = trips
         .where(
           (t) =>

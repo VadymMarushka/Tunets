@@ -3,6 +3,7 @@
 // In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../app/app_routes.dart';
 import '../../core/platform/platform_style.dart';
@@ -12,6 +13,7 @@ import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_page.dart';
 import '../../core/widgets/brand.dart';
@@ -21,11 +23,12 @@ import '../../core/widgets/section_header.dart';
 import '../../core/widgets/stat_tile.dart';
 import '../../data/models/catch_entry.dart';
 import '../../data/models/trip.dart';
+import 'bloc/trips_bloc.dart';
 import 'trip_form_screen.dart';
 
-/// Asks for confirmation and "deletes" the trip (FR-4). Data is hardcoded in
-/// this lab, so only the confirmation and the notice are shown.
-Future<bool> confirmDeleteTrip(BuildContext context) async {
+/// Asks for confirmation and deletes [trip] (FR-4) through [TripsBloc].
+/// Returns whether the user confirmed.
+Future<bool> confirmDeleteTrip(BuildContext context, Trip trip) async {
   final confirmed = await showConfirmDialog(
     context,
     title: AppStrings.deleteTripTitle,
@@ -33,6 +36,7 @@ Future<bool> confirmDeleteTrip(BuildContext context) async {
     confirmLabel: AppStrings.delete,
   );
   if (confirmed && context.mounted) {
+    context.read<TripsBloc>().add(TripDeleted(trip.id));
     showNotice(context, AppStrings.tripDeleted);
   }
   return confirmed;
@@ -40,13 +44,27 @@ Future<bool> confirmDeleteTrip(BuildContext context) async {
 
 /// S-7. Trip details as a separate page (narrow layout, or "Open" from the
 /// Windows master–detail view).
+///
+/// Gets only the trip id and reads the trip itself from [TripsBloc], so it
+/// shows the edited version right after "Save" in the form.
 class TripDetailsScreen extends StatelessWidget {
-  const TripDetailsScreen({super.key, required this.trip});
+  const TripDetailsScreen({super.key, required this.tripId});
 
-  final Trip trip;
+  final String tripId;
 
   @override
   Widget build(BuildContext context) {
+    final trip = context.select((TripsBloc bloc) => bloc.state.byId(tripId));
+    // Deleted (here or elsewhere): nothing to show, the page is closing.
+    if (trip == null) return const SizedBox.shrink();
+
+    void edit() => context.pushFullScreen(TripFormScreen(trip: trip));
+    Future<void> delete() async {
+      if (await confirmDeleteTrip(context, trip) && context.mounted) {
+        Navigator.of(context).maybePop();
+      }
+    }
+
     return AppPage(
       title: PlatformStyle.isFluent ? trip.waterBody : AppStrings.tripDetails,
       parentTitle: AppStrings.navTrips,
@@ -54,25 +72,47 @@ class TripDetailsScreen extends StatelessWidget {
         PageAction(
           label: AppStrings.edit,
           icon: AppIcons.edit,
-          onPressed: () => context.pushFullScreen(TripFormScreen(trip: trip)),
+          onPressed: edit,
         ),
         PageAction(
           label: AppStrings.delete,
           icon: AppIcons.delete,
           destructive: true,
-          onPressed: () async {
-            if (await confirmDeleteTrip(context) && context.mounted) {
-              Navigator.of(context).maybePop();
-            }
-          },
+          onPressed: delete,
         ),
       ],
       body: SingleChildScrollView(
         padding: pagePadding(),
         child: ContentConstraint(
-          child: TripDetailsView(
-            trip: trip,
-            showTitle: !PlatformStyle.isFluent,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TripDetailsView(trip: trip, showTitle: !PlatformStyle.isFluent),
+              if (!PlatformStyle.isFluent) ...[
+                // Android (Material 3) only: Edit / Delete under the details
+                // (mockup), in addition to the app bar icons.
+                const SizedBox(height: AppSpacing.l),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppButton.tonal(
+                        label: AppStrings.edit,
+                        icon: AppIcons.edit,
+                        onPressed: edit,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s),
+                    Expanded(
+                      child: AppButton.danger(
+                        label: AppStrings.delete,
+                        icon: AppIcons.delete,
+                        onPressed: delete,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ),
         ),
       ),

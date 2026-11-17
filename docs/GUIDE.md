@@ -56,12 +56,13 @@ if (... // Android (Material 3) only
 
 ```
 lib/
-├── main.dart                 точка входу: Firebase, сервіси, обробники помилок
+├── main.dart                 точка входу: Firebase, сервіси, SharedPreferences, обробники помилок
 ├── firebase_options.dart     згенеровано `flutterfire configure` (не редагувати)
 ├── app/                      «каркас» застосунку
-│   ├── tunets_app.dart       MaterialApp або FluentApp + теми
-│   ├── app_services.dart     AppServices (auth, analytics, crashes) і CurrentUser
-│   ├── auth_gate.dart        вхід / головний екран залежно від сеансу
+│   ├── tunets_app.dart       MaterialApp або FluentApp + теми (режим теми з ThemeBloc)
+│   ├── app_providers.dart    DI: RepositoryProvider-и + глобальні BlocProvider-и (ЛР5)
+│   ├── bloc/                 AuthBloc (сеанс), ThemeBloc (тема) — події, стани, блок
+│   ├── auth_gate.dart        вхід / головний екран залежно від AuthBloc
 │   ├── app_shell.dart        навігація після входу (нижня/бічна панель)
 │   └── app_routes.dart       переходи між екранами (push / pop)
 ├── core/                     усе спільне, не прив'язане до конкретного екрана
@@ -72,14 +73,15 @@ lib/
 │   ├── utils/                форматування дат і ваги, валідація полів
 │   └── widgets/              спільні віджети (вимога методички, п. 5)
 ├── data/                     дані
-│   ├── models/               Trip, Weather, CatchEntry, UserProfile
-│   ├── repositories/         AuthRepository (Firebase Auth) + AuthFailure
-│   └── mock/                 тестові виїзди (до Cloud Firestore у ЛР5)
-└── features/                 екрани, згруповані за функціями
-    ├── auth/                 S-1, S-2, S-3
+│   ├── models/               Trip, Weather, CatchEntry (+ toJson/fromJson), UserProfile
+│   ├── repositories/         AuthRepository (Firebase Auth), TripsRepository (JSON-файл),
+│   │                         SettingsRepository (SharedPreferences), AuthFailure
+│   └── mock/                 демо-виїзди (стартові дані нового користувача) і довідники
+└── features/                 екрани, згруповані за функціями; у кожного свій bloc/
+    ├── auth/                 S-1, S-2, S-3 + bloc/AuthFormBloc
     ├── home/                 S-4
-    ├── trips/                S-5, S-6, S-7
-    └── profile/              S-8
+    ├── trips/                S-5, S-6, S-7 + bloc/TripsBloc
+    └── profile/              S-8 + bloc/ProfileBloc
 ```
 
 ---
@@ -99,29 +101,35 @@ lib/
 
 Що де всередині:
 
-* **sign_in_screen / register_screen / reset_password_screen** — `StatefulWidget` з
-  `Form` і `GlobalKey<FormState>`. Кнопка спершу викликає `validate()`, потім метод
-  `AuthRepository` (`signIn`, `signUp`, `sendPasswordReset`). Поки запит іде, кнопка
-  показує індикатор, поля заблоковані. Помилка `AuthFailure` → `showNotice(...)`.
-  Після успіху екран нікуди сам не переходить — це робить `AuthGate` (див. розділ 5).
-* **home_screen** — привітання, бейдж `Synced`, останні 3 виїзди. На широкому вікні
-  справа картка `_SummaryCard` (статистика за місяць).
-* **trips_screen** — пошук + фільтри. На вузькому екрані — просто список
-  (тап відкриває деталі окремою сторінкою). На широкому — **master–detail**:
-  список зліва, деталі вибраного виїзду справа (`_DetailsPane`).
-* **trip_details_screen** — два класи: `TripDetailsScreen` (окрема сторінка) і
-  `TripDetailsView` (сам вміст; його ж показує права панель у master–detail).
-  Тут же `confirmDeleteTrip` — діалог видалення.
-* **trip_form_screen** — створення/редагування. Стан форми (дата, водойма, список
-  снастей, список уловів `_CatchDraft`) живе в `_TripFormScreenState`.
-  Кнопки: на Android — знизу (`_MaterialFormBar`), на Windows — у заголовку.
-* **profile_screen** — секції `_PersonalInfoSection` (ім'я, фото через
-  `showAvatarPicker`, телефон — заглушка до Firestore), `_ChangePasswordSection`
-  (повторна автентифікація + новий пароль) і `_DiagnosticsSection` (тестова помилка
-  та тестовий збій для Crashlytics / Sentry). На широкому вікні — дві колонки.
-  Кнопка виходу — в заголовку сторінки.
-* **home_screen** — дані користувача (ім'я, фото) беруться з `CurrentUser.of(context)`;
+* **sign_in_screen / register_screen / reset_password_screen** — зовнішній
+  `StatelessWidget` створює свій `AuthFormBloc` (`BlocProvider`), внутрішній
+  `StatefulWidget` тримає `Form` і контролери. Кнопка викликає `validate()` і
+  надсилає подію (`SignInSubmitted`, `RegisterSubmitted`, `PasswordResetRequested`).
+  `context.select(...isLoading)` блокує поля і показує індикатор у кнопці,
+  `BlocListener` показує помилку (`showNotice`) або після успіху робить
+  `returnToRoot()`. Далі екран змінює `AuthGate` (див. розділ 5).
+* **home_screen** — привітання, бейдж `Synced`, останні 3 виїзди з `TripsBloc`
+  (`BlocBuilder`: індикатор / порожній стан / список). На широкому вікні справа
+  `_SummaryCard` (статистика за поточний місяць). Ім'я і фото — `context.currentUser`;
   тап по аватару відкриває вкладку Profile.
+* **trips_screen** — список з `TripsBloc` (`BlocBuilder`), помилка завантаження →
+  `_LoadError` з кнопкою Retry. Пошук, фільтр і вибраний виїзд — ефемерний стан
+  екрана (`setState`). На вузькому екрані — просто список (тап відкриває деталі
+  окремою сторінкою). На широкому — **master–detail**: список зліва, деталі справа.
+* **trip_details_screen** — `TripDetailsScreen(tripId)` бере сам виїзд із `TripsBloc`
+  (`context.select`), тому після редагування одразу показує нову версію.
+  `TripDetailsView` — сам вміст (його ж показує права панель у master–detail).
+  `confirmDeleteTrip(context, trip)` — діалог і подія `TripDeleted`.
+* **trip_form_screen** — створення/редагування. Поки форма відкрита, значення живуть
+  у `_TripFormScreenState` (контролери, `_CatchDraft`). «Save» валідує поля (числа —
+  `Validators`), збирає `Trip` і надсилає `TripSaved`. Порожній рядок улову
+  (без виду і ваги) ігнорується. Кнопки: на Android — знизу, на Windows — у заголовку.
+* **profile_screen** — свій `ProfileBloc` (`ProfileStarted` завантажує користувача,
+  поки що — індикатор). Секції: `_PersonalInfoSection` (ім'я, фото через
+  `showProfilePhotoPicker`, телефон — заглушка до Firestore), `_ChangePasswordSection`,
+  `_AppearanceSection` (System / Light / Dark → `ThemeBloc`) і `_DiagnosticsSection`
+  (тестова помилка / збій для Crashlytics / Sentry). Результат кожного запиту —
+  `ProfileResult`, його показує один `BlocListener`. Кнопка виходу — в заголовку.
 
 ---
 
@@ -136,7 +144,7 @@ lib/
 | `PasswordField` | [password_field.dart](../lib/core/widgets/password_field.dart) | `TextField` + кнопка «око» | `fl.PasswordBox` | вхід, реєстрація, профіль (теж `FormField`) |
 | `AppButton` (`primary/secondary/text/danger`), `AppIconButton` | [app_button.dart](../lib/core/widgets/app_button.dart) | `FilledButton` / `OutlinedButton` / `TextButton` | `fl.FilledButton` / `fl.Button` / `fl.HyperlinkButton` | всюди; `loading: true` — індикатор і неактивна кнопка |
 | `AppProgressIndicator` | [progress.dart](../lib/core/widgets/progress.dart) | `CircularProgressIndicator` | `fl.ProgressRing` | кнопки, заставка |
-| `showAvatarPicker`, `AvatarPresets` | [avatar_picker.dart](../lib/core/widgets/avatar_picker.dart) | `AlertDialog` | `fl.ContentDialog` | вибір фото профілю з 12 готових (DiceBear, HTTPS) |
+| `showProfilePhotoPicker` | [avatar_picker.dart](../lib/core/widgets/avatar_picker.dart) | нижня шторка Camera / Gallery / Remove photo | `fl.ContentDialog` із зоною «Drag an image here» | «Change photo» у профілі, як у макеті; завантаження власних фото — з хмарним сховищем, зараз працює лише видалення |
 | `AppCard` | [app_card.dart](../lib/core/widgets/app_card.dart) | Material `Card` з ripple | шар з рамкою, hover і фокус | картки, секції |
 | `AppSelectField` | [app_pickers.dart](../lib/core/widgets/app_pickers.dart) | `DropdownButtonFormField` | `fl.ComboBox` | водойма, вид риби, вітер |
 | `AppDateField`, `AppTimeField` | [app_pickers.dart](../lib/core/widgets/app_pickers.dart) | системні `showDatePicker` / `showTimePicker` | `fl.DatePicker` / `fl.TimePicker` | форма виїзду |
@@ -157,19 +165,19 @@ lib/
 
 ## 5. Навігація
 
-Кореневий екран — [`AuthGate`](../lib/app/auth_gate.dart). Він слухає
-`AuthRepository.userChanges()` і сам вирішує, що показати:
+Кореневий екран — [`AuthGate`](../lib/app/auth_gate.dart). Це `BlocBuilder` над
+`AuthBloc` (який слухає `AuthRepository.userChanges()`):
 
-* Firebase ще відновлює збережений сеанс → заставка (лого + індикатор);
-* користувача немає → `SignInScreen`;
-* користувач є → `CurrentUser(user, AppShell(...))`.
+* `AuthStatus.unknown` (Firebase ще відновлює сеанс) → заставка (лого + індикатор);
+* `unauthenticated` → `SignInScreen`;
+* `authenticated` → `AppShell` (з ключем uid: інший акаунт — чистий стан оболонки).
 
 **До входу:** з `SignInScreen` — `pushPage(...)` на реєстрацію чи відновлення
 пароля, `Navigator.pop` — назад. Після успішного входу/реєстрації екран викликає
 `context.returnToRoot()` (закриває реєстрацію, якщо вона була відкрита), а
 `AuthGate` вже показує [`AppShell`](../lib/app/app_shell.dart).
 
-**Вихід:** `returnToRoot()` + `auth.signOut()` → `AuthGate` показує екран входу.
+**Вихід:** `returnToRoot()` + `AuthSignOutRequested` → `AuthGate` показує екран входу.
 Кнопка «назад» ніколи не повертає між станами «увійшов / не увійшов».
 
 `AppShell` має три розділи (`AppTab.home / trips / profile`). У **кожного розділу
@@ -189,11 +197,16 @@ lib/
 `AppShellScope.maybeOf(context)?.selectTab(AppTab.trips)`.
 
 **Windows-панель:** режим `compact` — завжди видно щонайменше колонку іконок.
-Кнопка-логотип (`_LogoPaneToggle` в `app_shell.dart`) розгортає/згортає підписи.
 На широкому вікні (≥ 840 px) панель стартує розгорнутою.
 Користувач унизу панелі — `_UserPaneFooter` (власний елемент замість `PaneItem`,
-бо Fluent обмежує іконки згорнутої панелі до 14 px). Висота заголовка панелі
-однакова в обох режимах (`_paneHeaderHeight`), тому пункти не «стрибають».
+бо Fluent обмежує іконки згорнутої панелі до 14 px).
+
+**Windows-вікно (макет):** системний заголовок схований (`window_manager`, у `main.dart`),
+замість нього свій — `WindowFrame` / `WindowTitleBar` ([window_frame.dart](../lib/app/window_frame.dart)):
+лого, «Tunets», кнопки згорнути/розгорнути/закрити, тло «mica». Обгортає весь застосунок
+через `FluentApp.builder`, тому є на всіх екранах. Лого в заголовку розгортає/згортає
+підписи панелі: `AppShell` кладе свою дію в `WindowTitleBar.paneToggle`.
+Сторінки лежать на світлішому шарі (`AppPalette.layer` = `scaffoldBackgroundColor`).
 Сповіщення (`showNotice`) на Windows з'являються знизу справа стовпчиком до 3 штук
 ([notice_stack.dart](../lib/core/widgets/notice_stack.dart)): нове — знизу, найстаріше зникає,
 кожне закривається саме через 4 с.
@@ -204,7 +217,7 @@ lib/
 
 | Що | Файл | Примітка |
 |---|---|---|
-| Кольори (світла + темна) | [theme/app_colors.dart](../lib/core/theme/app_colors.dart) | `AppPalette.of(context)` — бере палітру за системною темою. Значення 1:1 з макета |
+| Кольори (світла + темна) | [theme/app_colors.dart](../lib/core/theme/app_colors.dart) | `AppPalette.of(context)` — палітра **активної** теми (системна або вибрана в Profile → Appearance). Значення 1:1 з макета |
 | Material-тема | [theme/material_theme.dart](../lib/core/theme/material_theme.dart) | кнопки, поля, навігація для Android |
 | Fluent-тема | [theme/fluent_theme.dart](../lib/core/theme/fluent_theme.dart) | акцентний колір і колір панелі для Windows |
 | Відступи, радіуси, розміри | [theme/app_spacing.dart](../lib/core/theme/app_spacing.dart) | крок 8 (4, 8, 12, 16, 24…) |
@@ -218,26 +231,74 @@ lib/
 
 ---
 
-## 7. Дані
+## 7. Стан застосунку (BLoC, ЛР5)
+
+Керування станом — **лише `Bloc` з подіями й станами** (`flutter_bloc`, без Cubit).
+Кожен блок — три файли: `xxx_bloc.dart` + `part` `xxx_event.dart`, `xxx_state.dart`.
+
+| Блок | Де створюється | Події → стани | Хто читає |
+|---|---|---|---|
+| [`AuthBloc`](../lib/app/bloc/auth_bloc.dart) | над застосунком | `AuthSubscriptionRequested` (стежить за `userChanges()` через `emit.forEach`), `AuthSignOutRequested` → `AuthState{unknown/authenticated/unauthenticated, user}` | `AuthGate`, `context.currentUser` (Home, панель, профіль) |
+| [`ThemeBloc`](../lib/app/bloc/theme_bloc.dart) | над застосунком | `ThemeModeChanged(mode)` → `ThemeState{mode}`; стартове значення і збереження — `SettingsRepository` | `TunetsApp` (`themeMode`), Profile → Appearance |
+| [`TripsBloc`](../lib/features/trips/bloc/trips_bloc.dart) | над застосунком | `TripsUserChanged(uid)`, `TripsRequested`, `TripSaved(trip)`, `TripDeleted(id)` → `TripsState{initial/loading/success/failure, trips (новіші першими), error}` | Home, Trips, деталі, форма |
+| [`AuthFormBloc`](../lib/features/auth/bloc/auth_form_bloc.dart) | у кожному з S-1/S-2/S-3 | `SignInSubmitted`, `RegisterSubmitted`, `PasswordResetRequested` → `AuthFormState{initial/loading/success/failure, message}` | ці екрани |
+| [`ProfileBloc`](../lib/features/profile/bloc/profile_bloc.dart) | у `ProfileScreen` | `ProfileStarted`, `ProfileNameSaved`, `ProfilePhotoChanged`, `ProfilePasswordChangeRequested` → `ProfileState{user, action, result}` | секції профілю |
+
+**Де що лежить** — [app_providers.dart](../lib/app/app_providers.dart):
+`MultiRepositoryProvider` (репозиторії й сервіси, `context.read<AuthRepository>()`) →
+`MultiBlocProvider` (три глобальні блоки) → `_SessionSync` → `TunetsApp`.
+Глобальні блоки стоять **над** `MaterialApp`/`FluentApp`, бо форма виїзду
+(`pushFullScreen` на Android) і діалоги відкриваються в кореневому `Navigator`,
+який є **сусідом** `AuthGate`, а не нащадком — блок нижче вони б не побачили.
+
+`_SessionSync` — `BlocListener<AuthBloc>`: при зміні uid надсилає
+`TripsUserChanged(uid)` (завантажити виїзди цього користувача, при виході — очистити)
+і передає uid у звіти про помилки.
+
+**Ефемерний стан** лишається в `setState`: пошук і фільтр списку, вибраний виїзд,
+значення відкритої форми, «посилання надіслано на …».
+
+Як користуватися у віджетах:
+
+```dart
+context.read<TripsBloc>().add(TripSaved(trip));          // надіслати подію
+BlocBuilder<TripsBloc, TripsState>(builder: ...)          // перебудова за станом
+context.select((TripsBloc b) => b.state.byId(id))         // лише потрібна частина
+BlocListener<ProfileBloc, ProfileState>(listener: ...)    // одноразова дія (повідомлення)
+```
+
+---
+
+## 8. Дані й локальне сховище
 
 * [data/models](../lib/data/models) — прості класи: `Trip` (виїзд), `Weather`,
-  `CatchEntry` (один вид улову), `UserProfile` (uid, ім'я, email, фото).
+  `CatchEntry` (один вид улову) з `toJson` / `fromJson`; `UserProfile` (uid, ім'я,
+  email, фото; порівнюється за значенням).
+* [data/repositories/trips_repository.dart](../lib/data/repositories/trips_repository.dart) —
+  інтерфейс `TripsRepository` і `LocalTripsRepository`: виїзди кожного користувача
+  в JSON-файлі `<app support>/trips_<uid>.json` (`path_provider`: на Windows —
+  `%APPDATA%\com.example\Tunets`, на Android — внутрішня пам'ять застосунку).
+  Новий користувач отримує демо-виїзди з `MockData`. Записи йдуть по черзі, кеш у
+  пам'яті; помилки — `TripsFailure`. У наступній ЛР можна додати
+  `FirestoreTripsRepository` з тим самим інтерфейсом — блоки й екрани не зміняться.
+* [data/repositories/settings_repository.dart](../lib/data/repositories/settings_repository.dart) —
+  налаштування в `SharedPreferences` (ключ `theme_mode`: `system/light/dark`).
+  `SharedPreferences.getInstance()` викликається в `main` до `runApp`, тому вибрана
+  тема є вже з першого кадру.
 * [data/repositories/auth_repository.dart](../lib/data/repositories/auth_repository.dart) —
-  інтерфейс `AuthRepository` і реалізація `FirebaseAuthRepository`. Екрани знають
-  лише інтерфейс; у тестах підставляється `FakeAuthRepository`
-  ([test/fakes.dart](../test/fakes.dart)).
+  інтерфейс `AuthRepository` і реалізація `FirebaseAuthRepository`. Блоки знають
+  лише інтерфейси; у тестах підставляються `FakeAuthRepository`,
+  `FakeTripsRepository` ([test/fakes.dart](../test/fakes.dart)).
 * [data/repositories/auth_failure.dart](../lib/data/repositories/auth_failure.dart) —
   коди помилок Firebase → зрозумілі повідомлення. Firebase SDK для Windows повертає
   частину помилок сервера (напр. неправильний пароль) як `unknown-error`, тому код
   додатково шукається в тексті повідомлення.
-* [data/mock/mock_data.dart](../lib/data/mock/mock_data.dart) — 4 тестові виїзди
-  (користувач уже справжній, з Firebase). `MockData.today` = 29.09.2026, щоб фільтр
-  «This month» і Summary показували вересень, як у макеті. Виїзди переїдуть у
-  Cloud Firestore у ЛР5.
+* [data/mock/mock_data.dart](../lib/data/mock/mock_data.dart) — 4 демо-виїзди
+  (стартові дані нового користувача) і довідники: водойми, види риби, напрямки вітру.
 
 ---
 
-## 8. Firebase і сервіси (ЛР4)
+## 9. Firebase і сервіси (ЛР4)
 
 | Функція | Android | Windows | Код |
 |---|---|---|---|
@@ -247,13 +308,13 @@ lib/
 
 Firebase Analytics і Crashlytics не мають реалізації для Windows, тому там
 використані аналоги. Реалізацію для платформи обирає [main.dart](../lib/main.dart),
-а екрани отримують сервіси через `AppServices.of(context)`:
+а блоки й екрани отримують сервіси через `RepositoryProvider` (з ЛР5; раніше —
+`AppServices`). Запити до Firebase і аналітику входу/реєстрації тепер робить
+`AuthFormBloc`, екрани лише надсилають події:
 
 ```dart
-final services = AppServices.of(context);
-await services.auth.signIn(email: ..., password: ...);
-services.analytics.logLogin();
-services.crashes.recordError(error, stack, reason: 'sign_in');
+context.read<AnalyticsService>().logScreen('sign_in');
+context.read<CrashReporter>().recordError(error, stack, reason: 'sign_in');
 ```
 
 * **Проєкт Firebase:** `tunets-ca0c8`, увімкнено лише Email/Password.
@@ -275,7 +336,7 @@ services.crashes.recordError(error, stack, reason: 'sign_in');
 
 ---
 
-## 9. Рецепти
+## 10. Рецепти
 
 **Додати новий екран:**
 1. Створити файл у `features/<розділ>/`, клас `XxxScreen extends StatelessWidget`.
@@ -304,7 +365,7 @@ services.crashes.recordError(error, stack, reason: 'sign_in');
 
 ---
 
-## 10. Запуск
+## 11. Запуск
 
 Перший раз: скопіювати `env.example.json` → `env.json` і вписати ключі Sentry та
 Aptabase. Для Windows-збірки з плагінами потрібен **режим розробника** Windows

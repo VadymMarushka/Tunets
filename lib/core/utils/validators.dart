@@ -11,6 +11,38 @@ abstract final class Validators {
 
   static final _email = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$');
 
+  /// Whole number (temperature may be negative); [positive] also requires
+  /// it to be greater than 0 (fish count).
+  static String? wholeNumber(String? value, {bool positive = false}) {
+    final number = int.tryParse(value?.trim() ?? '');
+    if (number == null) return AppStrings.wholeNumberRequired;
+    if (positive && number <= 0) return AppStrings.mustBePositive;
+    return null;
+  }
+
+  static String? positiveWholeNumber(String? value) =>
+      wholeNumber(value, positive: true);
+
+  /// Number greater than 0, a comma is accepted too (fish weight, "1,5").
+  static String? positiveDecimal(String? value) {
+    final number = parseDecimal(value);
+    if (number == null) return AppStrings.numberRequired;
+    if (number <= 0) return AppStrings.mustBePositive;
+    return null;
+  }
+
+  static double? parseDecimal(String? value) =>
+      double.tryParse((value ?? '').trim().replaceAll(',', '.'));
+
+  static const maxWaterBodyLength = 60;
+
+  static String? waterBody(String? value) {
+    final name = value?.trim() ?? '';
+    if (name.isEmpty) return AppStrings.waterBodyIsRequired;
+    if (name.length > maxWaterBodyLength) return AppStrings.waterBodyTooLong;
+    return null;
+  }
+
   static String? name(String? value) {
     final name = value?.trim() ?? '';
     if (name.isEmpty) return AppStrings.nameRequired;

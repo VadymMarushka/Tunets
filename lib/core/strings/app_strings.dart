@@ -37,9 +37,9 @@ abstract final class AppStrings {
       'We will send you a link to create a new password.';
   static const sendResetLink = 'Send reset link';
   static const checkInbox = 'Check your inbox.';
-  static String resetLinkSent(String email) =>
-      'If an account exists for $email, we sent a link to reset the '
-      'password. Check the spam folder too.';
+
+  /// Followed by the email in bold (mockup).
+  static const resetLinkSentTo = 'We sent a reset link to ';
   static const rememberedIt = 'Remembered it?';
   static const backToSignIn = 'Back to sign in';
 
@@ -58,6 +58,9 @@ abstract final class AppStrings {
   static const summary = 'Summary';
   static const tripsThisMonth = 'Trips this month';
   static const totalCatch = 'Total catch';
+  static const homeEmptyMessage =
+      'Log your first fishing trip: weather, tackle and every catch in one '
+      'place.';
   static const bestCatch = 'Best catch';
 
   // Trips list (S-5)
@@ -103,12 +106,30 @@ abstract final class AppStrings {
   static const time = 'Time';
   static const waterBody = 'Water body';
   static const waterBodyRequired = 'Water body *';
-  static const selectWaterBody = 'Select water body';
+  static const waterBodyHint = 'e.g. Lake Svitiaz';
+
+  // Hints inside empty fields (placeholders)
+  static const nameHint = 'e.g. Vadym';
+  static const emailHint = 'e.g. name@example.com';
+  static const passwordEnterHint = 'Your password';
+  static const passwordNewHint = 'At least 8 characters';
+  static const passwordRepeatHint = 'Type the password again';
+  static const currentPasswordHint = 'Your current password';
+  static const temperatureHint = 'e.g. 14';
+  static const pressureHint = 'e.g. 1016';
+  static const windSpeedHint = 'e.g. 3';
+  static const tackleHint = 'e.g. Spinning rod 2.4 m';
+  static const weightHint = 'e.g. 1.5';
+  static const countHint = 'e.g. 1';
   static const waterBodyIsRequired = 'Water body is required';
+  static const waterBodyTooLong = 'Water body must be at most 60 characters';
   static const temperatureC = 'Temperature, °C';
   static const pressureHpa = 'Pressure, hPa';
   static const windSpeed = 'Wind speed, m/s';
   static const windDirection = 'Wind direction';
+  // Shorter Android labels (two fields side by side on a phone).
+  static const windSpeedShort = 'Wind, m/s';
+  static const direction = 'Direction';
   static const select = 'Select';
   static const addTackle = 'Add tackle';
   static const tackleName = 'Tackle name';
@@ -124,7 +145,14 @@ abstract final class AppStrings {
   static const cancel = 'Cancel';
   static const remove = 'Remove';
   static const tripSaved = 'Trip saved';
-  static const fillRequiredField = 'Fill in the required field marked below.';
+  static const fixFormErrors = 'Fix the fields marked below.';
+  static const cantSaveYet = "Can't save yet";
+  static const numberRequired = 'Enter a number';
+  static const wholeNumberRequired = 'Enter a whole number';
+  static const mustBePositive = 'Must be greater than 0';
+  static const speciesRequired = 'Select the species';
+  static const tripsLoadFailed = "Couldn't load your trips";
+  static const retry = 'Retry';
 
   // Photos (FR-5, UI only in this lab)
   static const addPhoto = 'Add photo';
@@ -160,14 +188,12 @@ abstract final class AppStrings {
   static const newPasswordSameAsCurrent =
       'The new password must differ from the current one.';
 
-  // Profile photo (preset images; own uploads come with cloud storage)
-  static const choosePhoto = 'Choose a profile photo';
-  static const photoHint = 'Pick one of the ready images';
-  static const photoPresets = 'Pick an image';
-  static const usePhoto = 'Use this photo';
-  static const uploadFromDevice = 'Upload from device';
-  static const uploadComingSoon =
-      'Coming soon! For now, pick one of the images above.';
+  // Profile photo (own uploads come with cloud storage in the next lab)
+  static const camera = 'Camera';
+  static const gallery = 'Gallery';
+  static const chooseSquareImage = 'Choose a square image for your profile.';
+  static const dragImageHere = 'Drag an image here';
+  static const browseFilesButton = 'Browse files…';
   static const photoUpdated = 'Profile photo updated';
   static const photoRemoved = 'Profile photo removed';
 
@@ -180,10 +206,18 @@ abstract final class AppStrings {
   static const passwordTooShort = 'Password must be at least 8 characters';
   static const passwordSpaces = 'Password must not start or end with a space';
   static const confirmPasswordRequired = 'Repeat the password';
-  static const passwordsDontMatch = "Passwords don't match";
+  static const passwordsDontMatch = 'Passwords do not match';
 
   // Errors
   static const unexpectedError = 'Something went wrong. Please try again.';
+
+  // Appearance (theme mode, saved on the device)
+  static const appearance = 'Appearance';
+  static const appearanceHint =
+      'Theme of the app on this device. "System" follows your OS setting.';
+  static const themeSystem = 'System';
+  static const themeLight = 'Light';
+  static const themeDark = 'Dark';
 
   // Diagnostics (LR4: crash reporting check)
   static const diagnostics = 'Diagnostics';

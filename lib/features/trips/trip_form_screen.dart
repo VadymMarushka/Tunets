@@ -3,12 +3,14 @@
 // In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/platform/platform_style.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/validators.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_page.dart';
@@ -19,13 +21,16 @@ import '../../core/widgets/info_chips.dart';
 import '../../core/widgets/photo_drop_zone.dart';
 import '../../core/widgets/section_header.dart';
 import '../../data/mock/mock_data.dart';
+import '../../data/models/catch_entry.dart';
 import '../../data/models/trip.dart';
+import 'bloc/trips_bloc.dart';
 
 /// S-6. Create / edit a trip (FR-4, FR-5).
 ///
-/// The form keeps its values only while it is open: "Save" checks the one
-/// required field (water body), closes the form and shows a notice.
-/// Persisting data comes with Firebase in a later lab.
+/// While the form is open its values are ephemeral state of this screen.
+/// "Save" validates them, builds a [Trip] and sends [TripSaved] to
+/// [TripsBloc], which stores it on the device. Catch photos are not
+/// stored yet (the photo zone is a placeholder).
 class TripFormScreen extends StatefulWidget {
   const TripFormScreen({super.key, this.trip});
 
@@ -43,16 +48,34 @@ class _CatchDraft {
   String? species;
   String weight;
   String count;
+
+  /// Untouched row (no species, no weight): ignored on save, so a trip
+  /// without fish doesn't need its empty row removed first.
+  bool get isBlank => species == null && weight.trim().isEmpty;
+
+  CatchEntry toEntry() => CatchEntry(
+    species: species!,
+    weightKg: Validators.parseDecimal(weight)!,
+    count: int.parse(count.trim()),
+  );
 }
 
 class _TripFormScreenState extends State<TripFormScreen> {
+  final _formKey = GlobalKey<FormState>();
   late DateTime _dateTime;
-  String? _waterBody;
+  late final TextEditingController _waterBody;
   String? _windDirection;
   late final List<String> _tackle;
   late final List<_CatchDraft> _catches;
   final _tackleController = TextEditingController();
+  late final TextEditingController _temperature;
+  late final TextEditingController _pressure;
+  late final TextEditingController _windSpeed;
+  late final TextEditingController _notes;
   bool _showErrors = false;
+
+  /// The last "Save" found errors (Windows shows an error bar).
+  bool _invalid = false;
 
   bool get _isEditing => widget.trip != null;
 
@@ -60,9 +83,20 @@ class _TripFormScreenState extends State<TripFormScreen> {
   void initState() {
     super.initState();
     final trip = widget.trip;
-    _dateTime = trip?.dateTime ?? MockData.today;
-    _waterBody = trip?.waterBody;
-    _windDirection = trip?.weather.windDirection;
+    final weather = trip?.weather;
+    final now = DateTime.now();
+    _dateTime =
+        trip?.dateTime ??
+        DateTime(now.year, now.month, now.day, now.hour, now.minute);
+    _waterBody = TextEditingController(text: trip?.waterBody ?? '');
+    final wind = weather?.windDirection ?? '';
+    _windDirection = wind.isEmpty ? null : wind;
+    _temperature = TextEditingController(
+      text: '${weather?.temperatureC ?? 14}',
+    );
+    _pressure = TextEditingController(text: '${weather?.pressureHpa ?? 1016}');
+    _windSpeed = TextEditingController(text: '${weather?.windSpeed ?? 3}');
+    _notes = TextEditingController(text: trip?.notes ?? '');
     _tackle = [...?trip?.tackle];
     _catches = trip == null
         ? [_CatchDraft()]
@@ -79,6 +113,11 @@ class _TripFormScreenState extends State<TripFormScreen> {
   @override
   void dispose() {
     _tackleController.dispose();
+    _waterBody.dispose();
+    _temperature.dispose();
+    _pressure.dispose();
+    _windSpeed.dispose();
+    _notes.dispose();
     super.dispose();
   }
 
@@ -90,11 +129,37 @@ class _TripFormScreenState extends State<TripFormScreen> {
   }
 
   void _save() {
-    if (_waterBody == null) {
-      setState(() => _showErrors = true);
-      showNotice(context, AppStrings.fillRequiredField, kind: NoticeKind.error);
+    setState(() => _showErrors = true);
+    final fieldsValid = _formKey.currentState!.validate();
+    final catchesValid = _catches.every((c) => c.isBlank || c.species != null);
+    setState(() => _invalid = !fieldsValid || !catchesValid);
+    if (_invalid) {
+      // Windows shows an error bar at the top of the form instead.
+      if (!PlatformStyle.isFluent) {
+        showNotice(context, AppStrings.fixFormErrors, kind: NoticeKind.error);
+      }
       return;
     }
+
+    final trip = Trip(
+      // Editing keeps the id, so the bloc replaces the stored trip.
+      id: widget.trip?.id ?? 'trip-${DateTime.now().microsecondsSinceEpoch}',
+      dateTime: _dateTime,
+      waterBody: _waterBody.text.trim(),
+      weather: Weather(
+        temperatureC: int.parse(_temperature.text.trim()),
+        pressureHpa: int.parse(_pressure.text.trim()),
+        windDirection: _windDirection ?? '',
+        windSpeed: int.parse(_windSpeed.text.trim()),
+      ),
+      tackle: List.of(_tackle),
+      catches: [
+        for (final draft in _catches)
+          if (!draft.isBlank) draft.toEntry(),
+      ],
+      notes: _notes.text.trim(),
+    );
+    context.read<TripsBloc>().add(TripSaved(trip));
     showNotice(context, AppStrings.tripSaved);
     Navigator.of(context).pop();
   }
@@ -135,26 +200,47 @@ class _TripFormScreenState extends State<TripFormScreen> {
               AppTextField(
                 label: AppStrings.notes,
                 hint: AppStrings.notesHint,
-                initialValue: widget.trip?.notes,
+                controller: _notes,
                 maxLines: 4,
               ),
             ]),
           ];
           final catchSection = _catchSection();
 
-          return SingleChildScrollView(
-            padding: pagePadding(),
-            child: ContentConstraint(
-              child: twoColumns
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: _column(main)),
-                        const SizedBox(width: AppSpacing.l),
-                        Expanded(child: catchSection),
-                      ],
-                    )
-                  : _column([...main.take(3), catchSection, main.last]),
+          final isFluent = PlatformStyle.isFluent;
+          return Form(
+            key: _formKey,
+            autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+            child: SingleChildScrollView(
+              padding: pagePadding(),
+              child: ContentConstraint(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (isFluent && _invalid) ...[
+                      // Windows (Fluent) only: error bar on top (mockup).
+                      const FormErrorBar(
+                        title: AppStrings.cantSaveYet,
+                        message: AppStrings.fixFormErrors,
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                    ],
+                    if (twoColumns)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: _column(main)),
+                          const SizedBox(width: AppSpacing.l),
+                          Expanded(child: catchSection),
+                        ],
+                      )
+                    else
+                      _column([...main.take(3), catchSection, main.last]),
+                    if (isFluent)
+                      _FluentFormBar(onCancel: _cancel, onSave: _save),
+                  ],
+                ),
+              ),
             ),
           );
         },
@@ -198,45 +284,53 @@ class _TripFormScreenState extends State<TripFormScreen> {
       ),
     ),
     const SizedBox(height: AppSpacing.m),
-    AppSelectField(
+    AppTextField(
       label: AppStrings.waterBodyRequired,
-      placeholder: AppStrings.selectWaterBody,
-      options: MockData.waterBodies,
-      value: _waterBody,
-      errorText: _showErrors && _waterBody == null
-          ? AppStrings.waterBodyIsRequired
-          : null,
-      onChanged: (value) => setState(() => _waterBody = value),
+      hint: AppStrings.waterBodyHint,
+      controller: _waterBody,
+      prefixIcon: AppIcons.waterBody,
+      textInputAction: TextInputAction.next,
+      validator: Validators.waterBody,
+      suggestions: MockData.waterBodySuggestions,
     ),
   ];
 
   List<Widget> _weatherFields() {
-    final weather = widget.trip?.weather;
     return [
       _pair(
         AppTextField(
           label: AppStrings.temperatureC,
+          hint: AppStrings.temperatureHint,
           prefixIcon: AppIcons.temperature,
-          initialValue: '${weather?.temperatureC ?? 14}',
-          keyboardType: TextInputType.number,
+          controller: _temperature,
+          keyboardType: const TextInputType.numberWithOptions(signed: true),
+          validator: Validators.wholeNumber,
         ),
         AppTextField(
           label: AppStrings.pressureHpa,
+          hint: AppStrings.pressureHint,
           prefixIcon: AppIcons.pressure,
-          initialValue: '${weather?.pressureHpa ?? 1016}',
+          controller: _pressure,
           keyboardType: TextInputType.number,
+          validator: Validators.positiveWholeNumber,
         ),
       ),
       const SizedBox(height: AppSpacing.m),
       _pair(
         AppTextField(
-          label: AppStrings.windSpeed,
+          label: PlatformStyle.isFluent
+              ? AppStrings.windSpeed
+              : AppStrings.windSpeedShort,
+          hint: AppStrings.windSpeedHint,
           prefixIcon: AppIcons.wind,
-          initialValue: '${weather?.windSpeed ?? 3}',
+          controller: _windSpeed,
           keyboardType: TextInputType.number,
+          validator: Validators.wholeNumber,
         ),
         AppSelectField(
-          label: AppStrings.windDirection,
+          label: PlatformStyle.isFluent
+              ? AppStrings.windDirection
+              : AppStrings.direction,
           placeholder: AppStrings.select,
           options: MockData.windDirections,
           value: _windDirection,
@@ -268,6 +362,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
         Expanded(
           child: AppTextField(
             label: AppStrings.tackleName,
+            hint: AppStrings.tackleHint,
             controller: _tackleController,
             prefixIcon: AppIcons.tackle,
             textInputAction: TextInputAction.done,
@@ -285,13 +380,19 @@ class _TripFormScreenState extends State<TripFormScreen> {
   ];
 
   Widget _catchSection() {
+    void addCatch() => setState(() => _catches.add(_CatchDraft()));
+    final isFluent = PlatformStyle.isFluent;
+    // Mockup: in the section header on Windows, a full-width button under
+    // the catches on Android.
+    final addButton = AppButton.secondary(
+      label: AppStrings.addCatch,
+      icon: AppIcons.add,
+      expand: !isFluent,
+      onPressed: addCatch,
+    );
     return _section(
       AppStrings.catchTitle,
-      trailing: AppButton.text(
-        label: AppStrings.addCatch,
-        icon: AppIcons.add,
-        onPressed: () => setState(() => _catches.add(_CatchDraft())),
-      ),
+      trailing: isFluent ? addButton : null,
       [
         if (_catches.isEmpty)
           Text(
@@ -303,11 +404,13 @@ class _TripFormScreenState extends State<TripFormScreen> {
             key: _catches[i].key,
             number: i + 1,
             draft: _catches[i],
+            showErrors: _showErrors,
             onChanged: () => setState(() {}),
             onRemove: () => setState(() => _catches.removeAt(i)),
           ),
           const SizedBox(height: AppSpacing.sm),
         ],
+        if (!isFluent) addButton, // Android (Material 3) only
       ],
     );
   }
@@ -329,12 +432,16 @@ class _CatchEditor extends StatelessWidget {
     super.key,
     required this.number,
     required this.draft,
+    required this.showErrors,
     required this.onChanged,
     required this.onRemove,
   });
 
   final int number;
   final _CatchDraft draft;
+
+  /// "Save" was pressed: mark a missing species.
+  final bool showErrors;
   final VoidCallback onChanged;
   final VoidCallback onRemove;
 
@@ -365,6 +472,9 @@ class _CatchEditor extends StatelessWidget {
             placeholder: AppStrings.selectSpecies,
             options: MockData.species,
             value: draft.species,
+            errorText: showErrors && !draft.isBlank && draft.species == null
+                ? AppStrings.speciesRequired
+                : null,
             onChanged: (value) {
               draft.species = value;
               onChanged();
@@ -377,20 +487,30 @@ class _CatchEditor extends StatelessWidget {
               Expanded(
                 child: AppTextField(
                   label: AppStrings.weightKg,
-                  hint: '0.0',
+                  hint: AppStrings.weightHint,
                   initialValue: draft.weight,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  onChanged: (value) => draft.weight = value,
+                  validator: (value) =>
+                      draft.isBlank ? null : Validators.positiveDecimal(value),
+                  // Rebuild: the row may stop being blank (species error).
+                  onChanged: (value) {
+                    draft.weight = value;
+                    onChanged();
+                  },
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: AppTextField(
                   label: AppStrings.count,
+                  hint: AppStrings.countHint,
                   initialValue: draft.count,
                   keyboardType: TextInputType.number,
+                  validator: (value) => draft.isBlank
+                      ? null
+                      : Validators.positiveWholeNumber(value),
                   onChanged: (value) => draft.count = value,
                 ),
               ),
@@ -400,6 +520,47 @@ class _CatchEditor extends StatelessWidget {
           const PhotoDropZone(),
         ],
       ),
+    );
+  }
+}
+
+/// Windows form actions repeated at the end of the form (mockup), so they
+/// are at hand after scrolling down: Cancel / Save on the right.
+class _FluentFormBar extends StatelessWidget {
+  const _FluentFormBar({required this.onCancel, required this.onSave});
+
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const AppDivider(spacing: AppSpacing.l),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            SizedBox(
+              width: 120,
+              child: AppButton.secondary(
+                label: AppStrings.cancel,
+                expand: true,
+                onPressed: onCancel,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s),
+            SizedBox(
+              width: 120,
+              child: AppButton(
+                label: AppStrings.save,
+                expand: true,
+                onPressed: onSave,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

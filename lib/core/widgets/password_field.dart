@@ -22,6 +22,7 @@ class PasswordField extends StatefulWidget {
     required this.label,
     this.controller,
     this.initialValue,
+    this.hint,
     this.helperText,
     this.errorText,
     this.textInputAction,
@@ -34,6 +35,7 @@ class PasswordField extends StatefulWidget {
   final String label;
   final TextEditingController? controller;
   final String? initialValue;
+  final String? hint;
   final String? helperText;
   final String? errorText;
   final TextInputAction? textInputAction;
@@ -81,6 +83,7 @@ class _PasswordFieldState extends State<PasswordField> {
                   controller: _controller,
                   enabled: widget.enabled,
                   revealMode: fl.PasswordRevealMode.peekAlways,
+                  placeholder: widget.hint,
                   onChanged: field.didChange,
                   onSubmitted: widget.onSubmitted,
                   highlightColor: errorColor,
@@ -95,6 +98,7 @@ class _PasswordFieldState extends State<PasswordField> {
                   onChanged: field.didChange,
                   onSubmitted: widget.onSubmitted,
                   decoration: InputDecoration(
+                    hintText: widget.hint,
                     helperText: widget.helperText,
                     errorText: errorText,
                     errorMaxLines: 2,

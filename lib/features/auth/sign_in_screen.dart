@@ -3,10 +3,11 @@
 // In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../app/app_routes.dart';
-import '../../app/app_services.dart';
 import '../../core/platform/platform_style.dart';
+import '../../core/services/analytics_service.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_spacing.dart';
@@ -18,30 +19,47 @@ import '../../core/widgets/auth_layout.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/dialogs.dart';
 import '../../core/widgets/password_field.dart';
-import '../../data/repositories/auth_failure.dart';
+import 'bloc/auth_form_bloc.dart';
 import 'register_screen.dart';
 import 'reset_password_screen.dart';
 
 /// S-1. Sign in with email and password (FR-1).
 ///
-/// On success `AuthGate` (the app root) switches to the home screen.
-class SignInScreen extends StatefulWidget {
+/// The request and its state (loading / error) live in [AuthFormBloc];
+/// the screen only validates the form and shows the state. On success
+/// `AuthBloc` gets the user and `AuthGate` switches to the home screen.
+class SignInScreen extends StatelessWidget {
   const SignInScreen({super.key});
 
   @override
-  State<SignInScreen> createState() => _SignInScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => AuthFormBloc(
+        auth: context.read(),
+        analytics: context.read(),
+        crashes: context.read(),
+      ),
+      child: const _SignInForm(),
+    );
+  }
 }
 
-class _SignInScreenState extends State<SignInScreen> {
+class _SignInForm extends StatefulWidget {
+  const _SignInForm();
+
+  @override
+  State<_SignInForm> createState() => _SignInFormState();
+}
+
+class _SignInFormState extends State<_SignInForm> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
-  bool _loading = false;
 
   @override
   void initState() {
     super.initState();
-    AppServices.of(context).analytics.logScreen('sign_in');
+    context.read<AnalyticsService>().logScreen('sign_in');
   }
 
   @override
@@ -51,29 +69,46 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-  Future<void> _signIn() async {
-    if (_loading || !_formKey.currentState!.validate()) return;
-    final services = AppServices.of(context);
-    setState(() => _loading = true);
-    try {
-      await services.auth.signIn(email: _email.text, password: _password.text);
-      services.analytics.logLogin();
-      if (mounted) context.returnToRoot();
-    } on AuthFailure catch (e) {
-      if (mounted) showNotice(context, e.message, kind: NoticeKind.error);
-    } catch (e, stack) {
-      services.crashes.recordError(e, stack, reason: 'sign_in');
-      if (mounted) {
-        showNotice(context, AppStrings.unexpectedError, kind: NoticeKind.error);
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+  void _signIn() {
+    if (!_formKey.currentState!.validate()) return;
+    context.read<AuthFormBloc>().add(
+      SignInSubmitted(email: _email.text, password: _password.text),
+    );
+  }
+
+  /// One-off reaction to success: close the register / reset pages if they
+  /// were opened on top (the form itself is rebuilt below).
+  void _onStateChanged(BuildContext context, AuthFormState state) {
+    if (state.status == AuthFormStatus.success) context.returnToRoot();
   }
 
   @override
   Widget build(BuildContext context) {
     final isFluent = PlatformStyle.isFluent;
+    final loading = context.select((AuthFormBloc bloc) => bloc.state.isLoading);
+    // Shown in the form (mockup), until the next attempt clears it.
+    final error = context.select(
+      (AuthFormBloc bloc) => bloc.state.status == AuthFormStatus.failure
+          ? bloc.state.message
+          : null,
+    );
+    return BlocListener<AuthFormBloc, AuthFormState>(
+      listener: _onStateChanged,
+      child: _buildForm(
+        context,
+        isFluent: isFluent,
+        loading: loading,
+        error: error,
+      ),
+    );
+  }
+
+  Widget _buildForm(
+    BuildContext context, {
+    required bool isFluent,
+    required bool loading,
+    required String? error,
+  }) {
     return Form(
       key: _formKey,
       // Errors appear after the first submit and update while typing.
@@ -86,27 +121,37 @@ class _SignInScreenState extends State<SignInScreen> {
               Text(AppStrings.signIn, style: AppTextStyles.title(context)),
               Text(AppStrings.tagline, style: AppTextStyles.caption(context)),
             ] else ...[
-              const Center(child: AppLogo(size: 64)),
+              const Center(child: AppLogo(size: 80)),
               const SizedBox(height: AppSpacing.m),
               Text(
                 AppStrings.appName,
-                style: AppTextStyles.headline(context)
-                    .copyWith(fontWeight: FontWeight.w700),
+                style: AppTextStyles.headline(context).copyWith(
+                  fontSize: 32,
+                  height: 1.25,
+                  fontWeight: FontWeight.w700,
+                ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.s),
               Text(
                 AppStrings.tagline,
-                style: AppTextStyles.secondary(context),
+                style: AppTextStyles.secondary(context).copyWith(fontSize: 16),
                 textAlign: TextAlign.center,
               ),
             ],
             SizedBox(height: isFluent ? AppSpacing.m : AppSpacing.xl),
+            if (isFluent && error != null) ...[
+              // Windows (Fluent) only: error bar inside the card (mockup).
+              FormErrorBar(message: error),
+              const SizedBox(height: AppSpacing.m),
+            ],
             AppTextField(
               label: AppStrings.email,
+              hint: AppStrings.emailHint,
               controller: _email,
-              enabled: !_loading,
-              prefixIcon: AppIcons.mail,
+              enabled: !loading,
+              // Mockup: the mail icon only in the Android field.
+              prefixIcon: isFluent ? null : AppIcons.mail,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.email],
@@ -115,18 +160,21 @@ class _SignInScreenState extends State<SignInScreen> {
             SizedBox(height: AuthLayout.fieldGap),
             PasswordField(
               label: AppStrings.password,
+              hint: AppStrings.passwordEnterHint,
               controller: _password,
-              enabled: !_loading,
+              enabled: !loading,
               textInputAction: TextInputAction.done,
               autofillHints: const [AutofillHints.password],
               validator: Validators.passwordEntered,
+              // Android (Material 3): the error goes under the field.
+              errorText: isFluent ? null : error,
               onSubmitted: (_) => _signIn(),
             ),
             Align(
               alignment: AlignmentDirectional.centerEnd,
               child: AppButton.text(
                 label: AppStrings.forgotPassword,
-                onPressed: _loading
+                onPressed: loading
                     ? null
                     : () => context.pushPage(
                         ResetPasswordScreen(initialEmail: _email.text.trim()),
@@ -137,7 +185,7 @@ class _SignInScreenState extends State<SignInScreen> {
             AppButton(
               label: AppStrings.signIn,
               expand: true,
-              loading: _loading,
+              loading: loading,
               onPressed: _signIn,
             ),
             const SizedBox(height: AppSpacing.m),
@@ -145,7 +193,7 @@ class _SignInScreenState extends State<SignInScreen> {
               text: AppStrings.newHere,
               action: AppButton.text(
                 label: AppStrings.register,
-                onPressed: _loading
+                onPressed: loading
                     ? null
                     : () => context.pushPage(const RegisterScreen()),
               ),

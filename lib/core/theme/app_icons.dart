@@ -18,15 +18,23 @@ abstract final class AppIcons {
   static IconData get home => _pick(Icons.home_outlined, fl.FluentIcons.home);
   static IconData get homeSelected => _pick(Icons.home, fl.FluentIcons.home);
   static IconData get trips =>
-      _pick(Icons.list_alt_outlined, fl.FluentIcons.bulleted_list);
+      _pick(Icons.article_outlined, fl.FluentIcons.bulleted_list);
   static IconData get tripsSelected =>
-      _pick(Icons.list_alt, fl.FluentIcons.bulleted_list);
+      // list_alt has no visibly filled version, so the selected tab
+      // (filled icon, like Home and Profile) uses article.
+      _pick(Icons.article, fl.FluentIcons.bulleted_list);
   static IconData get profile =>
       _pick(Icons.person_outline, fl.FluentIcons.contact);
   static IconData get profileSelected =>
       _pick(Icons.person, fl.FluentIcons.contact);
 
   static IconData get add => _pick(Icons.add, fl.FluentIcons.add);
+  static IconData get checkCircle =>
+      _pick(Icons.check_circle_outline, fl.FluentIcons.completed);
+  static IconData get warning =>
+      _pick(Icons.error_outline, fl.FluentIcons.warning);
+  static IconData get themeMode =>
+      _pick(Icons.brightness_6_outlined, fl.FluentIcons.color);
   static IconData get edit => _pick(Icons.edit_outlined, fl.FluentIcons.edit);
   static IconData get delete =>
       _pick(Icons.delete_outline, fl.FluentIcons.delete);

@@ -9,6 +9,7 @@ import '../platform/platform_style.dart';
 import '../strings/app_strings.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_icons.dart';
+import '../theme/app_spacing.dart';
 import 'notice_stack.dart';
 
 /// Confirmation for destructive actions: Material dialog on Android,
@@ -28,6 +29,7 @@ Future<bool> showConfirmDialog(
     result = await fl.showDialog<bool>(
       context: context,
       builder: (context) => fl.ContentDialog(
+        constraints: const BoxConstraints(maxWidth: AppSizes.dialogWidth),
         title: Text(title),
         content: Text(message),
         actions: [
@@ -100,6 +102,25 @@ void showNotice(
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(message)));
+}
+
+/// Error shown inside a form (Windows): an InfoBar with an optional bold
+/// [title] before the [message], as in the mockup ("Can't save yet").
+class FormErrorBar extends StatelessWidget {
+  const FormErrorBar({super.key, required this.message, this.title});
+
+  final String message;
+  final String? title;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = this.title;
+    return fl.InfoBar(
+      severity: fl.InfoBarSeverity.error,
+      title: Text(title ?? message),
+      content: title == null ? null : Text(message),
+    );
+  }
 }
 
 /// Photo source choice (FR-5). Android shows a bottom sheet with camera and

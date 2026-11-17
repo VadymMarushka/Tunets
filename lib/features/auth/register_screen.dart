@@ -3,12 +3,12 @@
 // In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../app/app_routes.dart';
-import '../../app/app_services.dart';
 import '../../core/platform/platform_style.dart';
+import '../../core/services/analytics_service.dart';
 import '../../core/strings/app_strings.dart';
-import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/validators.dart';
@@ -18,31 +18,46 @@ import '../../core/widgets/auth_layout.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/dialogs.dart';
 import '../../core/widgets/password_field.dart';
-import '../../data/repositories/auth_failure.dart';
+import 'bloc/auth_form_bloc.dart';
 
 /// S-2. Create an account with name, email and password (FR-1).
 ///
 /// Firebase signs the new user in right away, so on success `AuthGate`
 /// opens the home screen.
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends StatelessWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => AuthFormBloc(
+        auth: context.read(),
+        analytics: context.read(),
+        crashes: context.read(),
+      ),
+      child: const _RegisterForm(),
+    );
+  }
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterForm extends StatefulWidget {
+  const _RegisterForm();
+
+  @override
+  State<_RegisterForm> createState() => _RegisterFormState();
+}
+
+class _RegisterFormState extends State<_RegisterForm> {
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
-  bool _loading = false;
 
   @override
   void initState() {
     super.initState();
-    AppServices.of(context).analytics.logScreen('register');
+    context.read<AnalyticsService>().logScreen('register');
   }
 
   @override
@@ -54,32 +69,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  Future<void> _register() async {
-    if (_loading || !_formKey.currentState!.validate()) return;
-    final services = AppServices.of(context);
-    setState(() => _loading = true);
-    try {
-      await services.auth.signUp(
+  void _register() {
+    if (!_formKey.currentState!.validate()) return;
+    context.read<AuthFormBloc>().add(
+      RegisterSubmitted(
         name: _name.text,
         email: _email.text,
         password: _password.text,
-      );
-      services.analytics.logSignUp();
-      if (mounted) context.returnToRoot();
-    } on AuthFailure catch (e) {
-      if (mounted) showNotice(context, e.message, kind: NoticeKind.error);
-    } catch (e, stack) {
-      services.crashes.recordError(e, stack, reason: 'sign_up');
-      if (mounted) {
-        showNotice(context, AppStrings.unexpectedError, kind: NoticeKind.error);
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final loading = context.select((AuthFormBloc bloc) => bloc.state.isLoading);
+    return BlocListener<AuthFormBloc, AuthFormState>(
+      listener: (context, state) {
+        if (state.status == AuthFormStatus.failure) {
+          showNotice(context, state.message!, kind: NoticeKind.error);
+        } else if (state.status == AuthFormStatus.success) {
+          // Close this page; AuthGate (the root) shows the home screen.
+          context.returnToRoot();
+        }
+      },
+      child: _buildForm(context, loading: loading),
+    );
+  }
+
+  Widget _buildForm(BuildContext context, {required bool loading}) {
     return Form(
       key: _formKey,
       autovalidateMode: AutovalidateMode.onUserInteractionIfError,
@@ -114,8 +131,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: AppSpacing.l),
             AppTextField(
               label: AppStrings.name,
+              hint: AppStrings.nameHint,
               controller: _name,
-              enabled: !_loading,
+              enabled: !loading,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.name],
               validator: Validators.name,
@@ -123,9 +141,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             SizedBox(height: AuthLayout.fieldGap),
             AppTextField(
               label: AppStrings.email,
+              hint: AppStrings.emailHint,
               controller: _email,
-              enabled: !_loading,
-              prefixIcon: AppIcons.mail,
+              enabled: !loading,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.email],
@@ -134,8 +152,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             SizedBox(height: AuthLayout.fieldGap),
             PasswordField(
               label: AppStrings.password,
+              hint: AppStrings.passwordNewHint,
               controller: _password,
-              enabled: !_loading,
+              enabled: !loading,
               helperText: AppStrings.passwordHint,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.newPassword],
@@ -144,8 +163,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             SizedBox(height: AuthLayout.fieldGap),
             PasswordField(
               label: AppStrings.confirmPassword,
+              hint: AppStrings.passwordRepeatHint,
               controller: _confirm,
-              enabled: !_loading,
+              enabled: !loading,
               textInputAction: TextInputAction.done,
               validator: Validators.confirmPassword(() => _password.text),
               onSubmitted: (_) => _register(),
@@ -154,7 +174,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             AppButton(
               label: AppStrings.register,
               expand: true,
-              loading: _loading,
+              loading: loading,
               onPressed: _register,
             ),
             const SizedBox(height: AppSpacing.m),
@@ -162,7 +182,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               text: AppStrings.alreadyHaveAccount,
               action: AppButton.text(
                 label: AppStrings.signIn,
-                onPressed: _loading
+                onPressed: loading
                     ? null
                     : () => Navigator.of(context).maybePop(),
               ),
