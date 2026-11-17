@@ -9,6 +9,7 @@ import '../platform/platform_style.dart';
 import '../strings/app_strings.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_icons.dart';
+import '../theme/app_spacing.dart';
 import 'notice_stack.dart';
 
 /// Confirmation for destructive actions: Material dialog on Android,
@@ -28,6 +29,7 @@ Future<bool> showConfirmDialog(
     result = await fl.showDialog<bool>(
       context: context,
       builder: (context) => fl.ContentDialog(
+        constraints: const BoxConstraints(maxWidth: AppSizes.dialogWidth),
         title: Text(title),
         content: Text(message),
         actions: [

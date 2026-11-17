@@ -48,6 +48,11 @@ class WindowTitleBar extends StatefulWidget {
   /// Mockup: 48 px, the same as the compact navigation pane is wide.
   static const height = 48.0;
 
+  /// Tracks dialogs on the root navigator, so the title bar greys out with
+  /// the rest of the window (it sits above the navigator, out of the
+  /// dialog barrier's reach). Passed to `FluentApp.navigatorObservers`.
+  static final modalObserver = _ModalBarrierObserver();
+
   /// What the logo does. `AppShell` sets it to open / close the navigation
   /// pane (mockup); outside the shell (sign-in) it is null and the logo is
   /// just a picture.
@@ -87,6 +92,32 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
     final theme = fl.FluentTheme.of(context);
     final brightness = theme.brightness;
 
+    return ValueListenableBuilder(
+      valueListenable: WindowTitleBar.modalObserver.barrier,
+      builder: (context, barrier, bar) => Stack(
+        children: [
+          bar!,
+          // Same shade as the dialog barrier; the window buttons stay
+          // usable, as in Windows itself.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                color: barrier ?? const Color(0x00000000),
+              ),
+            ),
+          ),
+        ],
+      ),
+      child: _buildBar(context, theme, brightness),
+    );
+  }
+
+  Widget _buildBar(
+    BuildContext context,
+    fl.FluentThemeData theme,
+    Brightness brightness,
+  ) {
     return DefaultTextStyle(
       style: theme.typography.body!.copyWith(fontWeight: FontWeight.w600),
       child: SizedBox(
@@ -132,6 +163,54 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
         ),
       ),
     );
+  }
+}
+
+/// Barrier color of the topmost open dialog (null when none is open).
+///
+/// Only routes with a visible barrier count: menus and flyouts have a
+/// transparent one.
+class _ModalBarrierObserver extends NavigatorObserver {
+  final barrier = ValueNotifier<Color?>(null);
+  final _routes = <ModalRoute<dynamic>>[];
+
+  static bool _hasBarrier(Route<dynamic>? route) =>
+      route is PopupRoute && (route.barrierColor?.a ?? 0) > 0;
+
+  void _add(Route<dynamic>? route) {
+    if (_hasBarrier(route)) _routes.add(route! as ModalRoute<dynamic>);
+    _update();
+  }
+
+  void _remove(Route<dynamic>? route) {
+    _routes.remove(route);
+    _update();
+  }
+
+  /// After the frame: the navigator reports changes while it is building,
+  /// and the title bar can't rebuild in the middle of that.
+  void _update() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      barrier.value = _routes.isEmpty ? null : _routes.last.barrierColor;
+    });
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _add(route);
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _remove(route);
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _remove(route);
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    _routes.remove(oldRoute);
+    _add(newRoute);
   }
 }
 

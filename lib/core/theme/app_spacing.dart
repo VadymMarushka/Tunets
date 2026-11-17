@@ -27,4 +27,7 @@ abstract final class AppSizes {
   static const double masterPane = 380;
   static const double summaryPane = 300;
   static const double minTouchTarget = 48;
+
+  /// Windows dialogs (mockup `.f-dialog`).
+  static const double dialogWidth = 448;
 }

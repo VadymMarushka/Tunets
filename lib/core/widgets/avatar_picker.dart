@@ -114,6 +114,7 @@ class _FluentPhotoDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
     return fl.ContentDialog(
+      constraints: const BoxConstraints(maxWidth: AppSizes.dialogWidth),
       title: const Text(AppStrings.changePhoto),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -123,65 +124,73 @@ class _FluentPhotoDialog extends StatelessWidget {
             AppStrings.chooseSquareImage,
             style: AppTextStyles.secondary(context),
           ),
-          const SizedBox(height: AppSpacing.m),
-          // Drop zone: dashed-looking frame with the browse button.
+          const SizedBox(height: 20),
+          // Drop zone (mockup .f-dropzone): dashed frame, opens the file
+          // picker on click.
           fl.HoverButton(
             onPressed: () => _browse(context),
             cursor: SystemMouseCursors.click,
-            builder: (context, states) => Container(
-              constraints: const BoxConstraints(minHeight: 160),
-              padding: const EdgeInsets.all(AppSpacing.m),
-              decoration: BoxDecoration(
+            builder: (context, states) => CustomPaint(
+              painter: _DashedBorderPainter(
                 color: states.isHovered
-                    ? palette.primary.withValues(alpha: 0.06)
-                    : palette.surface2,
-                borderRadius: BorderRadius.circular(AppRadius.fluent),
-                border: Border.all(
-                  color: states.isHovered
-                      ? palette.primary
-                      : palette.secondaryText,
-                ),
+                    ? palette.primary
+                    : palette.secondaryText,
+                radius: AppRadius.fluent,
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(AppIcons.upload, size: 32, color: palette.primary),
-                  const SizedBox(height: AppSpacing.s),
-                  Text(
-                    AppStrings.dragImageHere,
-                    style: AppTextStyles.body(context),
-                  ),
-                  Text(
-                    AppStrings.photoRequirements,
-                    style: AppTextStyles.caption(context),
-                  ),
-                  const SizedBox(height: AppSpacing.s),
-                  AppButton.secondary(
-                    label: AppStrings.browseFilesButton,
-                    icon: AppIcons.gallery,
-                    onPressed: () => _browse(context),
-                  ),
-                ],
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 160),
+                padding: const EdgeInsets.all(AppSpacing.m),
+                decoration: BoxDecoration(
+                  color: states.isHovered
+                      ? Color.alphaBlend(palette.subtleHover, palette.surface2)
+                      : palette.surface2,
+                  borderRadius: BorderRadius.circular(AppRadius.fluent),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(AppIcons.upload, size: 32, color: palette.primary),
+                    const SizedBox(height: AppSpacing.s),
+                    Text(
+                      AppStrings.dragImageHere,
+                      style: AppTextStyles.body(context),
+                    ),
+                    const SizedBox(height: AppSpacing.s),
+                    Text(
+                      AppStrings.photoRequirements,
+                      style: AppTextStyles.caption(context),
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+                    AppButton.secondary(
+                      label: AppStrings.browseFilesButton,
+                      icon: AppIcons.gallery,
+                      onPressed: () => _browse(context),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
           if (hasPhoto) ...[
-            const SizedBox(height: AppSpacing.m),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: AppButton.danger(
-                label: AppStrings.removePhoto,
-                icon: AppIcons.delete,
-                onPressed: () =>
-                    Navigator.of(context).pop(ProfilePhotoAction.remove),
-              ),
+            // Not in the mockup: needed to go back to the letter avatar.
+            const SizedBox(height: AppSpacing.sm),
+            AppButton.danger(
+              label: AppStrings.removePhoto,
+              icon: AppIcons.delete,
+              expand: true,
+              onPressed: () =>
+                  Navigator.of(context).pop(ProfilePhotoAction.remove),
             ),
           ],
         ],
       ),
       actions: [
-        // Nothing to save until an image can be uploaded (next lab).
-        const fl.FilledButton(onPressed: null, child: Text(AppStrings.save)),
+        // No image can be picked yet (next lab), so Save just closes the
+        // dialog without changes, as in the mockup.
+        fl.FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(AppStrings.save),
+        ),
         fl.Button(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text(AppStrings.cancel),
@@ -189,4 +198,40 @@ class _FluentPhotoDialog extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Dashed rounded frame (CSS `border: 1px dashed`), which Flutter has no
+/// built-in border for.
+class _DashedBorderPainter extends CustomPainter {
+  const _DashedBorderPainter({required this.color, required this.radius});
+
+  final Color color;
+  final double radius;
+
+  static const _dash = 4.0;
+  static const _gap = 3.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final outline = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          (Offset.zero & size).deflate(0.5),
+          Radius.circular(radius),
+        ),
+      );
+    for (final metric in outline.computeMetrics()) {
+      for (var d = 0.0; d < metric.length; d += _dash + _gap) {
+        canvas.drawPath(metric.extractPath(d, d + _dash), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.radius != radius;
 }

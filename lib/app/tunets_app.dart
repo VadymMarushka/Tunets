@@ -52,6 +52,7 @@ class TunetsApp extends StatelessWidget {
         builder: windowFrame
             ? (context, child) => WindowFrame(child: child!)
             : null,
+        navigatorObservers: [if (windowFrame) WindowTitleBar.modalObserver],
         home: const AuthGate(),
       );
     }

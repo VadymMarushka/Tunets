@@ -45,6 +45,7 @@ class AppPalette {
   final Color onSurface;
   final Color secondaryText;
   final Color outline;
+
   /// Windows: the content layer over the mica backdrop (mockup `--layer`,
   /// already blended with the backdrop, so it is opaque).
   final Color layer;
