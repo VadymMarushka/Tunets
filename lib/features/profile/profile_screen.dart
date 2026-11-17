@@ -167,9 +167,12 @@ class _ProfileView extends StatelessWidget {
 
 /// Groups a section on a card on Windows; on Android sections are plain.
 class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.children});
+  const _Section({required this.title, required this.children, this.leading});
 
   final String title;
+
+  /// Shown above the title (Android: the profile photo, as in the mockup).
+  final Widget? leading;
   final List<Widget> children;
 
   @override
@@ -177,6 +180,10 @@ class _Section extends StatelessWidget {
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (leading != null) ...[
+          leading!,
+          const SizedBox(height: AppSpacing.l),
+        ],
         SectionHeader(title: title),
         const SizedBox(height: AppSpacing.s),
         ...children,
@@ -277,9 +284,11 @@ class _PersonalInfoSectionState extends State<_PersonalInfoSection> {
       autovalidateMode: AutovalidateMode.onUserInteractionIfError,
       child: _Section(
         title: AppStrings.personalInfo,
+        // Android (Material 3): the photo above "Personal info" (mockup);
+        // Windows: inside the card, under the title.
+        leading: isFluent ? null : photo,
         children: [
-          photo,
-          const SizedBox(height: AppSpacing.m),
+          if (isFluent) ...[photo, const SizedBox(height: AppSpacing.m)],
           AppTextField(
             label: AppStrings.name,
             hint: AppStrings.nameHint,

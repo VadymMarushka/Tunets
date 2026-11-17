@@ -18,9 +18,11 @@ abstract final class AppIcons {
   static IconData get home => _pick(Icons.home_outlined, fl.FluentIcons.home);
   static IconData get homeSelected => _pick(Icons.home, fl.FluentIcons.home);
   static IconData get trips =>
-      _pick(Icons.list_alt_outlined, fl.FluentIcons.bulleted_list);
+      _pick(Icons.article_outlined, fl.FluentIcons.bulleted_list);
   static IconData get tripsSelected =>
-      _pick(Icons.list_alt, fl.FluentIcons.bulleted_list);
+      // list_alt has no visibly filled version, so the selected tab
+      // (filled icon, like Home and Profile) uses article.
+      _pick(Icons.article, fl.FluentIcons.bulleted_list);
   static IconData get profile =>
       _pick(Icons.person_outline, fl.FluentIcons.contact);
   static IconData get profileSelected =>

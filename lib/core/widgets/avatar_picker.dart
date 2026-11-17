@@ -12,6 +12,7 @@ import '../theme/app_icons.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 import 'app_button.dart';
+import 'dashed_border.dart';
 import 'dialogs.dart';
 
 /// What the user chose in the "Change photo" picker.
@@ -131,7 +132,7 @@ class _FluentPhotoDialog extends StatelessWidget {
             onPressed: () => _browse(context),
             cursor: SystemMouseCursors.click,
             builder: (context, states) => CustomPaint(
-              painter: _DashedBorderPainter(
+              painter: DashedBorderPainter(
                 color: states.isHovered
                     ? palette.primary
                     : palette.secondaryText,
@@ -198,40 +199,4 @@ class _FluentPhotoDialog extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Dashed rounded frame (CSS `border: 1px dashed`), which Flutter has no
-/// built-in border for.
-class _DashedBorderPainter extends CustomPainter {
-  const _DashedBorderPainter({required this.color, required this.radius});
-
-  final Color color;
-  final double radius;
-
-  static const _dash = 4.0;
-  static const _gap = 3.0;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    final outline = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          (Offset.zero & size).deflate(0.5),
-          Radius.circular(radius),
-        ),
-      );
-    for (final metric in outline.computeMetrics()) {
-      for (var d = 0.0; d < metric.length; d += _dash + _gap) {
-        canvas.drawPath(metric.extractPath(d, d + _dash), paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedBorderPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.radius != radius;
 }
