@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'app/app_providers.dart';
 import 'app/tunets_app.dart';
@@ -50,6 +51,18 @@ Future<void> main() async {
     return true;
   };
 
+  if (PlatformStyle.isFluent) {
+    // Windows: hide the system title bar; the app draws its own
+    // (WindowFrame, as in the LR2 mockup). The window keeps its borders,
+    // so it can still be resized.
+    await windowManager.ensureInitialized();
+    await windowManager.setTitleBarStyle(
+      TitleBarStyle.hidden,
+      windowButtonVisibility: false,
+    );
+    await windowManager.setMinimumSize(const Size(480, 560));
+  }
+
   // Read the saved settings before the first frame, so the chosen theme
   // is there from the start (no flash of the system theme).
   final prefs = await SharedPreferences.getInstance();
@@ -61,7 +74,7 @@ Future<void> main() async {
       settings: SettingsRepository(prefs),
       analytics: analytics,
       crashes: crashes,
-      child: const TunetsApp(),
+      child: TunetsApp(windowFrame: PlatformStyle.isFluent),
     ),
   );
 }

@@ -88,7 +88,7 @@ class HomeScreen extends StatelessWidget {
                   Text(
                     AppStrings.greeting(_salutation(), user.name),
                     style: isFluent
-                        ? AppTextStyles.subtitle(context)
+                        ? AppTextStyles.title(context)
                         : AppTextStyles.headline(context),
                   ),
                   if (!isFluent) ...[

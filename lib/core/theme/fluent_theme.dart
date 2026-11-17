@@ -30,7 +30,9 @@ FluentThemeData buildFluentTheme(Brightness brightness) {
     // Windows UI font (LR2). Set explicitly so it is the same everywhere.
     fontFamily: 'Segoe UI',
     visualDensity: VisualDensity.standard,
-    scaffoldBackgroundColor: p.background,
+    // Pages lie on the lighter content layer, the pane and the title bar
+    // on the mica backdrop (mockup).
+    scaffoldBackgroundColor: p.layer,
     micaBackgroundColor: p.mica.first,
     cardColor: p.surface,
     menuColor: p.surface,

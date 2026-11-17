@@ -22,6 +22,7 @@ class AppPalette {
     required this.onSurface,
     required this.secondaryText,
     required this.outline,
+    required this.layer,
     required this.layerBorder,
     required this.subtleHover,
     required this.error,
@@ -44,6 +45,9 @@ class AppPalette {
   final Color onSurface;
   final Color secondaryText;
   final Color outline;
+  /// Windows: the content layer over the mica backdrop (mockup `--layer`,
+  /// already blended with the backdrop, so it is opaque).
+  final Color layer;
   final Color layerBorder;
   final Color subtleHover;
   final Color error;
@@ -70,6 +74,7 @@ class AppPalette {
     onSurface: Color(0xFF10201F),
     secondaryText: Color(0xFF4A6360),
     outline: Color(0xFFC5D6D4),
+    layer: Color(0xFFF5F9F8),
     layerBorder: Color(0x1410201F),
     subtleHover: Color(0x0F10201F),
     error: Color(0xFFB3261E),
@@ -93,6 +98,7 @@ class AppPalette {
     onSurface: Color(0xFFE2EEEC),
     secondaryText: Color(0xFFA9C0BD),
     outline: Color(0xFF3A4F4D),
+    layer: Color(0xFF131F1E),
     layerBorder: Color(0x12FFFFFF),
     subtleHover: Color(0x0FFFFFFF),
     error: Color(0xFFF2B8B5),

@@ -197,11 +197,16 @@ lib/
 `AppShellScope.maybeOf(context)?.selectTab(AppTab.trips)`.
 
 **Windows-панель:** режим `compact` — завжди видно щонайменше колонку іконок.
-Кнопка-логотип (`_LogoPaneToggle` в `app_shell.dart`) розгортає/згортає підписи.
 На широкому вікні (≥ 840 px) панель стартує розгорнутою.
 Користувач унизу панелі — `_UserPaneFooter` (власний елемент замість `PaneItem`,
-бо Fluent обмежує іконки згорнутої панелі до 14 px). Висота заголовка панелі
-однакова в обох режимах (`_paneHeaderHeight`), тому пункти не «стрибають».
+бо Fluent обмежує іконки згорнутої панелі до 14 px).
+
+**Windows-вікно (макет):** системний заголовок схований (`window_manager`, у `main.dart`),
+замість нього свій — `WindowFrame` / `WindowTitleBar` ([window_frame.dart](../lib/app/window_frame.dart)):
+лого, «Tunets», кнопки згорнути/розгорнути/закрити, тло «mica». Обгортає весь застосунок
+через `FluentApp.builder`, тому є на всіх екранах. Лого в заголовку розгортає/згортає
+підписи панелі: `AppShell` кладе свою дію в `WindowTitleBar.paneToggle`.
+Сторінки лежать на світлішому шарі (`AppPalette.layer` = `scaffoldBackgroundColor`).
 Сповіщення (`showNotice`) на Windows з'являються знизу справа стовпчиком до 3 штук
 ([notice_stack.dart](../lib/core/widgets/notice_stack.dart)): нове — знизу, найстаріше зникає,
 кожне закривається саме через 4 с.

@@ -12,12 +12,18 @@ import '../core/theme/fluent_theme.dart';
 import '../core/theme/material_theme.dart';
 import 'auth_gate.dart';
 import 'bloc/theme_bloc.dart';
+import 'window_frame.dart';
 
 /// Root widget. One code base, two design languages:
 /// [MaterialApp] (Material 3) on Android, [fl.FluentApp] on Windows.
 /// The theme mode (system / light / dark) comes from [ThemeBloc].
 class TunetsApp extends StatelessWidget {
-  const TunetsApp({super.key});
+  const TunetsApp({super.key, this.windowFrame = false});
+
+  /// Windows: draw the app's own title bar ([WindowFrame]). Set by
+  /// `main.dart`, which hides the system one; off in widget tests (no real
+  /// window there).
+  final bool windowFrame;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +48,10 @@ class TunetsApp extends StatelessWidget {
         // advertises every Fluent locale, e.g. uk, which the Material
         // delegate can't serve (a framework error on Ukrainian Windows).
         supportedLocales: const [Locale('en')],
+        // Title bar above every page and dialog (mockup).
+        builder: windowFrame
+            ? (context, child) => WindowFrame(child: child!)
+            : null,
         home: const AuthGate(),
       );
     }
