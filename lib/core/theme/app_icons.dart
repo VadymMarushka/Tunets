@@ -27,6 +27,8 @@ abstract final class AppIcons {
       _pick(Icons.person, fl.FluentIcons.contact);
 
   static IconData get add => _pick(Icons.add, fl.FluentIcons.add);
+  static IconData get checkCircle =>
+      _pick(Icons.check_circle_outline, fl.FluentIcons.completed);
   static IconData get warning =>
       _pick(Icons.error_outline, fl.FluentIcons.warning);
   static IconData get themeMode =>

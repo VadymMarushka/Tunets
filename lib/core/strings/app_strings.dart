@@ -37,9 +37,9 @@ abstract final class AppStrings {
       'We will send you a link to create a new password.';
   static const sendResetLink = 'Send reset link';
   static const checkInbox = 'Check your inbox.';
-  static String resetLinkSent(String email) =>
-      'If an account exists for $email, we sent a link to reset the '
-      'password. Check the spam folder too.';
+
+  /// Followed by the email in bold (mockup).
+  static const resetLinkSentTo = 'We sent a reset link to ';
   static const rememberedIt = 'Remembered it?';
   static const backToSignIn = 'Back to sign in';
 
@@ -58,6 +58,9 @@ abstract final class AppStrings {
   static const summary = 'Summary';
   static const tripsThisMonth = 'Trips this month';
   static const totalCatch = 'Total catch';
+  static const homeEmptyMessage =
+      'Log your first fishing trip: weather, tackle and every catch in one '
+      'place.';
   static const bestCatch = 'Best catch';
 
   // Trips list (S-5)
@@ -124,6 +127,9 @@ abstract final class AppStrings {
   static const pressureHpa = 'Pressure, hPa';
   static const windSpeed = 'Wind speed, m/s';
   static const windDirection = 'Wind direction';
+  // Shorter Android labels (two fields side by side on a phone).
+  static const windSpeedShort = 'Wind, m/s';
+  static const direction = 'Direction';
   static const select = 'Select';
   static const addTackle = 'Add tackle';
   static const tackleName = 'Tackle name';
@@ -140,6 +146,7 @@ abstract final class AppStrings {
   static const remove = 'Remove';
   static const tripSaved = 'Trip saved';
   static const fixFormErrors = 'Fix the fields marked below.';
+  static const cantSaveYet = "Can't save yet";
   static const numberRequired = 'Enter a number';
   static const wholeNumberRequired = 'Enter a whole number';
   static const mustBePositive = 'Must be greater than 0';
@@ -181,14 +188,12 @@ abstract final class AppStrings {
   static const newPasswordSameAsCurrent =
       'The new password must differ from the current one.';
 
-  // Profile photo (preset images; own uploads come with cloud storage)
-  static const choosePhoto = 'Choose a profile photo';
-  static const photoHint = 'Pick one of the ready images';
-  static const photoPresets = 'Pick an image';
-  static const usePhoto = 'Use this photo';
-  static const uploadFromDevice = 'Upload from device';
-  static const uploadComingSoon =
-      'Coming soon! For now, pick one of the images above.';
+  // Profile photo (own uploads come with cloud storage in the next lab)
+  static const camera = 'Camera';
+  static const gallery = 'Gallery';
+  static const chooseSquareImage = 'Choose a square image for your profile.';
+  static const dragImageHere = 'Drag an image here';
+  static const browseFilesButton = 'Browse files…';
   static const photoUpdated = 'Profile photo updated';
   static const photoRemoved = 'Profile photo removed';
 
@@ -201,7 +206,7 @@ abstract final class AppStrings {
   static const passwordTooShort = 'Password must be at least 8 characters';
   static const passwordSpaces = 'Password must not start or end with a space';
   static const confirmPasswordRequired = 'Repeat the password';
-  static const passwordsDontMatch = "Passwords don't match";
+  static const passwordsDontMatch = 'Passwords do not match';
 
   // Errors
   static const unexpectedError = 'Something went wrong. Please try again.';

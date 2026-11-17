@@ -9,7 +9,6 @@ import '../../app/app_routes.dart';
 import '../../core/platform/platform_style.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/strings/app_strings.dart';
-import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/validators.dart';
@@ -145,7 +144,6 @@ class _RegisterFormState extends State<_RegisterForm> {
               hint: AppStrings.emailHint,
               controller: _email,
               enabled: !loading,
-              prefixIcon: AppIcons.mail,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.email],

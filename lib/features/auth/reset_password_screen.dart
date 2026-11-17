@@ -110,17 +110,29 @@ class _ResetPasswordFormState extends State<_ResetPasswordForm> {
             alignment: isFluent
                 ? AlignmentDirectional.centerStart
                 : AlignmentDirectional.center,
+            // Mail icon; after sending, a green check (mockup).
             child: Container(
-              width: isFluent ? 40 : 56,
-              height: isFluent ? 40 : 56,
+              width: isFluent ? 48 : 72,
+              height: isFluent ? 48 : 72,
               decoration: BoxDecoration(
-                color: palette.primaryContainer,
+                color: sentTo != null
+                    ? Color.alphaBlend(
+                        palette.success.withValues(alpha: 0.16),
+                        palette.surface,
+                      )
+                    : palette.primaryContainer,
                 shape: isFluent ? BoxShape.rectangle : BoxShape.circle,
                 borderRadius: isFluent
                     ? BorderRadius.circular(AppRadius.fluent)
                     : null,
               ),
-              child: Icon(AppIcons.mail, color: palette.onPrimaryContainer),
+              child: Icon(
+                sentTo != null ? AppIcons.checkCircle : AppIcons.mail,
+                size: isFluent ? 24 : 32,
+                color: sentTo != null
+                    ? palette.success
+                    : palette.onPrimaryContainer,
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.m),
@@ -130,13 +142,29 @@ class _ResetPasswordFormState extends State<_ResetPasswordForm> {
             textAlign: align,
           ),
           const SizedBox(height: AppSpacing.xs),
-          Text(
-            sentTo != null
-                ? AppStrings.resetLinkSent(sentTo)
-                : AppStrings.resetPasswordDescription,
-            style: AppTextStyles.secondary(context),
-            textAlign: align,
-          ),
+          if (sentTo != null)
+            Text.rich(
+              TextSpan(
+                children: [
+                  const TextSpan(text: AppStrings.resetLinkSentTo),
+                  TextSpan(
+                    text: sentTo,
+                    style: TextStyle(
+                      color: palette.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              style: AppTextStyles.secondary(context),
+              textAlign: align,
+            )
+          else
+            Text(
+              AppStrings.resetPasswordDescription,
+              style: AppTextStyles.secondary(context),
+              textAlign: align,
+            ),
           const SizedBox(height: AppSpacing.l),
           if (sentTo == null) ...[
             AppTextField(
@@ -144,7 +172,8 @@ class _ResetPasswordFormState extends State<_ResetPasswordForm> {
               hint: AppStrings.emailHint,
               controller: _email,
               enabled: !loading,
-              prefixIcon: AppIcons.mail,
+              // Mockup: the mail icon only in the Android field.
+              prefixIcon: isFluent ? null : AppIcons.mail,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.done,
               autofillHints: const [AutofillHints.email],

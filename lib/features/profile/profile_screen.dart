@@ -75,6 +75,8 @@ class _ProfileView extends StatelessWidget {
         PageAction(
           label: AppStrings.signOut,
           icon: AppIcons.signOut,
+          // Android has the Sign out button at the bottom (mockup).
+          showOnMaterial: false,
           onPressed: () => _signOut(context),
         ),
       ],
@@ -100,6 +102,11 @@ class _ProfileView extends StatelessWidget {
         const password = _ChangePasswordSection();
         const appearance = _AppearanceSection();
         const diagnostics = _DiagnosticsSection();
+        // Android: sections are split by dividers (mockup); Windows: cards
+        // with a gap.
+        final gap = PlatformStyle.isFluent
+            ? const SizedBox(height: AppSpacing.l)
+            : const AppDivider(spacing: AppSpacing.l);
 
         return SingleChildScrollView(
           padding: pagePadding(),
@@ -133,15 +140,15 @@ class _ProfileView extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       personal,
-                      const SizedBox(height: AppSpacing.l),
+                      gap,
                       password,
-                      const SizedBox(height: AppSpacing.l),
+                      gap,
                       appearance,
-                      const SizedBox(height: AppSpacing.l),
+                      gap,
                       diagnostics,
                       if (!PlatformStyle.isFluent) ...[
                         // Android (Material 3) only
-                        const SizedBox(height: AppSpacing.l),
+                        gap,
                         AppButton.danger(
                           label: AppStrings.signOut,
                           icon: AppIcons.signOut,
@@ -209,12 +216,14 @@ class _PersonalInfoSectionState extends State<_PersonalInfoSection> {
 
   Future<void> _changePhoto() async {
     final bloc = context.read<ProfileBloc>();
-    final choice = await showAvatarPicker(
+    final choice = await showProfilePhotoPicker(
       context,
-      currentUrl: bloc.state.user?.photoUrl,
+      hasPhoto: bloc.state.user?.photoUrl != null,
     );
-    if (choice == null) return;
-    bloc.add(ProfilePhotoChanged(choice.url));
+    // Uploading own photos comes with cloud storage; removing works now.
+    if (choice == ProfilePhotoAction.remove) {
+      bloc.add(const ProfilePhotoChanged(null));
+    }
   }
 
   @override
@@ -228,7 +237,7 @@ class _PersonalInfoSectionState extends State<_PersonalInfoSection> {
     final photo = isFluent
         ? Row(
             children: [
-              UserAvatar(size: 64, photoUrl: user.photoUrl),
+              UserAvatar(size: 80, photoUrl: user.photoUrl),
               const SizedBox(width: AppSpacing.m),
               Expanded(
                 child: Column(
@@ -242,7 +251,7 @@ class _PersonalInfoSectionState extends State<_PersonalInfoSection> {
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      AppStrings.photoHint,
+                      AppStrings.dropImageOrBrowse,
                       style: AppTextStyles.caption(context),
                     ),
                   ],
@@ -414,6 +423,10 @@ class _ChangePasswordSectionState extends State<_ChangePasswordSection> {
               alignment: AlignmentDirectional.centerStart,
               child: AppButton(
                 label: AppStrings.updatePassword,
+                // Mockup: tonal on Android, accent on Windows.
+                variant: isFluent
+                    ? AppButtonVariant.primary
+                    : AppButtonVariant.tonal,
                 expand: !isFluent,
                 loading: saving,
                 onPressed: _update,

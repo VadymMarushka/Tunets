@@ -42,9 +42,7 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<void> signIn({required String email, required String password}) async {
     if (password == wrongPassword) {
-      throw const AuthFailure(
-        "Couldn't sign in. Check your email and password.",
-      );
+      throw const AuthFailure('Incorrect email or password. Try again.');
     }
     _set(UserProfile(uid: 'u1', name: 'Vadym', email: email));
   }

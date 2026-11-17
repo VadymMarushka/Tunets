@@ -17,10 +17,15 @@ enum AppButtonVariant {
   /// Secondary action (outlined on Android, standard button on Windows).
   secondary,
 
+  /// Medium emphasis: filled with the container color on Android
+  /// (Material "tonal"), standard button on Windows.
+  tonal,
+
   /// Low-emphasis action / link.
   text,
 
-  /// Destructive low-emphasis action (sign out, delete).
+  /// Destructive action (sign out, delete): outlined in the error color on
+  /// Android, transparent button with red text on Windows.
   danger,
 }
 
@@ -44,6 +49,15 @@ class AppButton extends StatelessWidget {
     this.expand = false,
     this.loading = false,
   }) : variant = AppButtonVariant.secondary;
+
+  const AppButton.tonal({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.icon,
+    this.expand = false,
+    this.loading = false,
+  }) : variant = AppButtonVariant.tonal;
 
   const AppButton.text({
     super.key,
@@ -112,14 +126,27 @@ class AppButton extends StatelessWidget {
                 icon: iconWidget,
                 label: text,
               );
-      case AppButtonVariant.text:
-      case AppButtonVariant.danger:
-        final style = variant == AppButtonVariant.danger
-            ? TextButton.styleFrom(foregroundColor: palette.error)
-            : null;
+      case AppButtonVariant.tonal:
         return iconWidget == null
-            ? TextButton(onPressed: _onPressed, style: style, child: text)
+            ? FilledButton.tonal(onPressed: _onPressed, child: text)
+            : FilledButton.tonalIcon(
+                onPressed: _onPressed,
+                icon: iconWidget,
+                label: text,
+              );
+      case AppButtonVariant.text:
+        return iconWidget == null
+            ? TextButton(onPressed: _onPressed, child: text)
             : TextButton.icon(
+                onPressed: _onPressed,
+                icon: iconWidget,
+                label: text,
+              );
+      case AppButtonVariant.danger:
+        final style = OutlinedButton.styleFrom(foregroundColor: palette.error);
+        return iconWidget == null
+            ? OutlinedButton(onPressed: _onPressed, style: style, child: text)
+            : OutlinedButton.icon(
                 onPressed: _onPressed,
                 style: style,
                 icon: iconWidget,
@@ -158,6 +185,7 @@ class AppButton extends StatelessWidget {
       case AppButtonVariant.primary:
         return fl.FilledButton(onPressed: _onPressed, child: child);
       case AppButtonVariant.secondary:
+      case AppButtonVariant.tonal:
         return fl.Button(onPressed: _onPressed, child: child);
       case AppButtonVariant.text:
         return fl.HyperlinkButton(onPressed: _onPressed, child: child);

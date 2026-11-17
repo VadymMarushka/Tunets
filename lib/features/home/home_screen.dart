@@ -155,7 +155,7 @@ class _RecentTrips extends StatelessWidget {
               return EmptyState(
                 icon: const FishIcon(),
                 title: AppStrings.noTripsYet,
-                message: AppStrings.noTripsYetMessage,
+                message: AppStrings.homeEmptyMessage,
                 action: AppButton(
                   label: AppStrings.addFirstTrip,
                   icon: AppIcons.add,

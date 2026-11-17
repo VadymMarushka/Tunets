@@ -74,6 +74,9 @@ class _TripFormScreenState extends State<TripFormScreen> {
   late final TextEditingController _notes;
   bool _showErrors = false;
 
+  /// The last "Save" found errors (Windows shows an error bar).
+  bool _invalid = false;
+
   bool get _isEditing => widget.trip != null;
 
   @override
@@ -129,8 +132,12 @@ class _TripFormScreenState extends State<TripFormScreen> {
     setState(() => _showErrors = true);
     final fieldsValid = _formKey.currentState!.validate();
     final catchesValid = _catches.every((c) => c.isBlank || c.species != null);
-    if (!fieldsValid || !catchesValid) {
-      showNotice(context, AppStrings.fixFormErrors, kind: NoticeKind.error);
+    setState(() => _invalid = !fieldsValid || !catchesValid);
+    if (_invalid) {
+      // Windows shows an error bar at the top of the form instead.
+      if (!PlatformStyle.isFluent) {
+        showNotice(context, AppStrings.fixFormErrors, kind: NoticeKind.error);
+      }
       return;
     }
 
@@ -200,14 +207,26 @@ class _TripFormScreenState extends State<TripFormScreen> {
           ];
           final catchSection = _catchSection();
 
+          final isFluent = PlatformStyle.isFluent;
           return Form(
             key: _formKey,
             autovalidateMode: AutovalidateMode.onUserInteractionIfError,
             child: SingleChildScrollView(
               padding: pagePadding(),
               child: ContentConstraint(
-                child: twoColumns
-                    ? Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (isFluent && _invalid) ...[
+                      // Windows (Fluent) only: error bar on top (mockup).
+                      const FormErrorBar(
+                        title: AppStrings.cantSaveYet,
+                        message: AppStrings.fixFormErrors,
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                    ],
+                    if (twoColumns)
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(child: _column(main)),
@@ -215,7 +234,12 @@ class _TripFormScreenState extends State<TripFormScreen> {
                           Expanded(child: catchSection),
                         ],
                       )
-                    : _column([...main.take(3), catchSection, main.last]),
+                    else
+                      _column([...main.take(3), catchSection, main.last]),
+                    if (isFluent)
+                      _FluentFormBar(onCancel: _cancel, onSave: _save),
+                  ],
+                ),
               ),
             ),
           );
@@ -294,7 +318,9 @@ class _TripFormScreenState extends State<TripFormScreen> {
       const SizedBox(height: AppSpacing.m),
       _pair(
         AppTextField(
-          label: AppStrings.windSpeed,
+          label: PlatformStyle.isFluent
+              ? AppStrings.windSpeed
+              : AppStrings.windSpeedShort,
           hint: AppStrings.windSpeedHint,
           prefixIcon: AppIcons.wind,
           controller: _windSpeed,
@@ -302,7 +328,9 @@ class _TripFormScreenState extends State<TripFormScreen> {
           validator: Validators.wholeNumber,
         ),
         AppSelectField(
-          label: AppStrings.windDirection,
+          label: PlatformStyle.isFluent
+              ? AppStrings.windDirection
+              : AppStrings.direction,
           placeholder: AppStrings.select,
           options: MockData.windDirections,
           value: _windDirection,
@@ -352,13 +380,19 @@ class _TripFormScreenState extends State<TripFormScreen> {
   ];
 
   Widget _catchSection() {
+    void addCatch() => setState(() => _catches.add(_CatchDraft()));
+    final isFluent = PlatformStyle.isFluent;
+    // Mockup: in the section header on Windows, a full-width button under
+    // the catches on Android.
+    final addButton = AppButton.secondary(
+      label: AppStrings.addCatch,
+      icon: AppIcons.add,
+      expand: !isFluent,
+      onPressed: addCatch,
+    );
     return _section(
       AppStrings.catchTitle,
-      trailing: AppButton.text(
-        label: AppStrings.addCatch,
-        icon: AppIcons.add,
-        onPressed: () => setState(() => _catches.add(_CatchDraft())),
-      ),
+      trailing: isFluent ? addButton : null,
       [
         if (_catches.isEmpty)
           Text(
@@ -376,6 +410,7 @@ class _TripFormScreenState extends State<TripFormScreen> {
           ),
           const SizedBox(height: AppSpacing.sm),
         ],
+        if (!isFluent) addButton, // Android (Material 3) only
       ],
     );
   }
@@ -485,6 +520,47 @@ class _CatchEditor extends StatelessWidget {
           const PhotoDropZone(),
         ],
       ),
+    );
+  }
+}
+
+/// Windows form actions repeated at the end of the form (mockup), so they
+/// are at hand after scrolling down: Cancel / Save on the right.
+class _FluentFormBar extends StatelessWidget {
+  const _FluentFormBar({required this.onCancel, required this.onSave});
+
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const AppDivider(spacing: AppSpacing.l),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            SizedBox(
+              width: 120,
+              child: AppButton.secondary(
+                label: AppStrings.cancel,
+                expand: true,
+                onPressed: onCancel,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s),
+            SizedBox(
+              width: 120,
+              child: AppButton(
+                label: AppStrings.save,
+                expand: true,
+                onPressed: onSave,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

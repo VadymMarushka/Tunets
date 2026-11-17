@@ -76,26 +76,30 @@ class _SignInFormState extends State<_SignInForm> {
     );
   }
 
-  /// One-off reactions to the result (the form itself is rebuilt below).
+  /// One-off reaction to success: close the register / reset pages if they
+  /// were opened on top (the form itself is rebuilt below).
   void _onStateChanged(BuildContext context, AuthFormState state) {
-    switch (state.status) {
-      case AuthFormStatus.failure:
-        showNotice(context, state.message!, kind: NoticeKind.error);
-      case AuthFormStatus.success:
-        // Close the register / reset pages if they were opened on top.
-        context.returnToRoot();
-      case AuthFormStatus.initial || AuthFormStatus.loading:
-        break;
-    }
+    if (state.status == AuthFormStatus.success) context.returnToRoot();
   }
 
   @override
   Widget build(BuildContext context) {
     final isFluent = PlatformStyle.isFluent;
     final loading = context.select((AuthFormBloc bloc) => bloc.state.isLoading);
+    // Shown in the form (mockup), until the next attempt clears it.
+    final error = context.select(
+      (AuthFormBloc bloc) => bloc.state.status == AuthFormStatus.failure
+          ? bloc.state.message
+          : null,
+    );
     return BlocListener<AuthFormBloc, AuthFormState>(
       listener: _onStateChanged,
-      child: _buildForm(context, isFluent: isFluent, loading: loading),
+      child: _buildForm(
+        context,
+        isFluent: isFluent,
+        loading: loading,
+        error: error,
+      ),
     );
   }
 
@@ -103,6 +107,7 @@ class _SignInFormState extends State<_SignInForm> {
     BuildContext context, {
     required bool isFluent,
     required bool loading,
+    required String? error,
   }) {
     return Form(
       key: _formKey,
@@ -116,28 +121,37 @@ class _SignInFormState extends State<_SignInForm> {
               Text(AppStrings.signIn, style: AppTextStyles.title(context)),
               Text(AppStrings.tagline, style: AppTextStyles.caption(context)),
             ] else ...[
-              const Center(child: AppLogo(size: 64)),
+              const Center(child: AppLogo(size: 80)),
               const SizedBox(height: AppSpacing.m),
               Text(
                 AppStrings.appName,
-                style: AppTextStyles.headline(context)
-                    .copyWith(fontWeight: FontWeight.w700),
+                style: AppTextStyles.headline(context).copyWith(
+                  fontSize: 32,
+                  height: 1.25,
+                  fontWeight: FontWeight.w700,
+                ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.s),
               Text(
                 AppStrings.tagline,
-                style: AppTextStyles.secondary(context),
+                style: AppTextStyles.secondary(context).copyWith(fontSize: 16),
                 textAlign: TextAlign.center,
               ),
             ],
             SizedBox(height: isFluent ? AppSpacing.m : AppSpacing.xl),
+            if (isFluent && error != null) ...[
+              // Windows (Fluent) only: error bar inside the card (mockup).
+              FormErrorBar(message: error),
+              const SizedBox(height: AppSpacing.m),
+            ],
             AppTextField(
               label: AppStrings.email,
               hint: AppStrings.emailHint,
               controller: _email,
               enabled: !loading,
-              prefixIcon: AppIcons.mail,
+              // Mockup: the mail icon only in the Android field.
+              prefixIcon: isFluent ? null : AppIcons.mail,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.email],
@@ -152,6 +166,8 @@ class _SignInFormState extends State<_SignInForm> {
               textInputAction: TextInputAction.done,
               autofillHints: const [AutofillHints.password],
               validator: Validators.passwordEntered,
+              // Android (Material 3): the error goes under the field.
+              errorText: isFluent ? null : error,
               onSubmitted: (_) => _signIn(),
             ),
             Align(

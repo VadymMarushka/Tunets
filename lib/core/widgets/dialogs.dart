@@ -102,6 +102,25 @@ void showNotice(
     ..showSnackBar(SnackBar(content: Text(message)));
 }
 
+/// Error shown inside a form (Windows): an InfoBar with an optional bold
+/// [title] before the [message], as in the mockup ("Can't save yet").
+class FormErrorBar extends StatelessWidget {
+  const FormErrorBar({super.key, required this.message, this.title});
+
+  final String message;
+  final String? title;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = this.title;
+    return fl.InfoBar(
+      severity: fl.InfoBarSeverity.error,
+      title: Text(title ?? message),
+      content: title == null ? null : Text(message),
+    );
+  }
+}
+
 /// Photo source choice (FR-5). Android shows a bottom sheet with camera and
 /// gallery; Windows has no camera flow, so it goes straight to the file
 /// picker. Pickers are wired up together with media upload in a later lab.

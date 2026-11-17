@@ -112,9 +112,7 @@ void main() {
       ),
       expect: () => [
         const AuthFormState.loading(),
-        const AuthFormState.failure(
-          "Couldn't sign in. Check your email and password.",
-        ),
+        const AuthFormState.failure('Incorrect email or password. Try again.'),
       ],
     );
 

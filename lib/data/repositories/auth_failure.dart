@@ -7,7 +7,7 @@ class AuthFailure implements Exception {
 
   /// Wrong email or password.
   static const wrongCredentials = AuthFailure(
-    "Couldn't sign in. Check your email and password.",
+    'Incorrect email or password. Try again.',
     code: 'invalid-credential',
   );
 

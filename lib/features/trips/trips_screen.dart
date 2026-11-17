@@ -2,6 +2,7 @@
 // Blocks are marked with "Android (Material 3)" / "Windows (Fluent)" comments.
 // In `isFluent ? a : b` expressions, `a` is the Windows value, `b` the Android one.
 
+import 'package:fluent_ui/fluent_ui.dart' as fl;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -197,7 +198,7 @@ class _TripsScreenState extends State<TripsScreen> {
               separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
               itemBuilder: (context, index) {
                 final trip = trips[index];
-                return TripCard(
+                final card = TripCard(
                   trip: trip,
                   selected: trip.id == selectedId,
                   onTap: masterDetail
@@ -206,6 +207,14 @@ class _TripsScreenState extends State<TripsScreen> {
                           TripDetailsScreen(tripId: trip.id),
                         ),
                 );
+                // Windows (Fluent) only: right-click menu (mockup).
+                return PlatformStyle.isFluent
+                    ? _TripContextMenu(
+                        trip: trip,
+                        onEdit: () => _openForm(trip),
+                        child: card,
+                      )
+                    : card;
               },
             ),
           ),
@@ -257,6 +266,74 @@ class _LoadError extends StatelessWidget {
       action: AppButton(
         label: AppStrings.retry,
         onPressed: () => context.read<TripsBloc>().add(const TripsRequested()),
+      ),
+    );
+  }
+}
+
+// ===== Windows (Fluent) =====
+
+/// Context menu of a trip card on right-click: Open, Edit, Delete.
+class _TripContextMenu extends StatefulWidget {
+  const _TripContextMenu({
+    required this.trip,
+    required this.onEdit,
+    required this.child,
+  });
+
+  final Trip trip;
+  final VoidCallback onEdit;
+  final Widget child;
+
+  @override
+  State<_TripContextMenu> createState() => _TripContextMenuState();
+}
+
+class _TripContextMenuState extends State<_TripContextMenu> {
+  final _flyout = fl.FlyoutController();
+
+  @override
+  void dispose() {
+    _flyout.dispose();
+    super.dispose();
+  }
+
+  void _show(Offset position) {
+    final trip = widget.trip;
+    _flyout.showFlyout<void>(
+      position: position,
+      barrierColor: Colors.transparent,
+      builder: (_) => fl.MenuFlyout(
+        items: [
+          fl.MenuFlyoutItem(
+            leading: Icon(AppIcons.open, size: 16),
+            text: const Text(AppStrings.open),
+            onPressed: () =>
+                context.pushPage(TripDetailsScreen(tripId: trip.id)),
+          ),
+          fl.MenuFlyoutItem(
+            leading: Icon(AppIcons.edit, size: 16),
+            text: const Text(AppStrings.edit),
+            onPressed: widget.onEdit,
+          ),
+          const fl.MenuFlyoutSeparator(),
+          fl.MenuFlyoutItem(
+            leading: Icon(AppIcons.delete, size: 16),
+            text: const Text(AppStrings.delete),
+            onPressed: () => confirmDeleteTrip(context, trip),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return fl.FlyoutTarget(
+      controller: _flyout,
+      child: GestureDetector(
+        onSecondaryTapUp: (details) => _show(details.globalPosition),
+        child: widget.child,
       ),
     );
   }

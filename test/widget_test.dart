@@ -76,7 +76,7 @@ void main() {
       await tester.tap(signInButton());
       await tester.pumpAndSettle();
       expect(
-        find.text("Couldn't sign in. Check your email and password."),
+        find.text('Incorrect email or password. Try again.'),
         findsOneWidget,
       );
       await flushNotices(tester);
@@ -141,7 +141,7 @@ void main() {
       );
       await enter(tester, 2, 'fishing2026');
       await enter(tester, 3, 'fishing2027');
-      expect(find.text("Passwords don't match"), findsOneWidget);
+      expect(find.text('Passwords do not match'), findsOneWidget);
       await enter(tester, 3, 'fishing2026');
 
       await tester.tap(find.widgetWithText(FilledButton, 'Register'));
@@ -180,8 +180,11 @@ void main() {
       expect(find.text('The current password is incorrect.'), findsOneWidget);
       await flushNotices(tester);
 
-      // Sign out returns to the sign-in screen.
-      await tester.tap(find.byTooltip('Sign out').first);
+      // Sign out (button at the bottom, as in the mockup) returns to the
+      // sign-in screen.
+      final signOut = find.widgetWithText(OutlinedButton, 'Sign out');
+      await tester.ensureVisible(signOut);
+      await tester.tap(signOut);
       await tester.pumpAndSettle();
       expect(find.text('Every catch, remembered.'), findsOneWidget);
     });
@@ -395,7 +398,7 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(find.text('Shatsk Pond'), findsOneWidget);
-        await tester.tap(find.widgetWithText(fl.Button, 'Cancel'));
+        await tester.tap(find.widgetWithText(fl.Button, 'Cancel').first);
         await tester.pumpAndSettle();
 
         // S-8 Profile
