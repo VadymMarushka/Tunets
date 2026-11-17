@@ -126,7 +126,7 @@ lib/
   (без виду і ваги) ігнорується. Кнопки: на Android — знизу, на Windows — у заголовку.
 * **profile_screen** — свій `ProfileBloc` (`ProfileStarted` завантажує користувача,
   поки що — індикатор). Секції: `_PersonalInfoSection` (ім'я, фото через
-  `showAvatarPicker`, телефон — заглушка до Firestore), `_ChangePasswordSection`,
+  `showProfilePhotoPicker`, телефон — заглушка до Firestore), `_ChangePasswordSection`,
   `_AppearanceSection` (System / Light / Dark → `ThemeBloc`) і `_DiagnosticsSection`
   (тестова помилка / збій для Crashlytics / Sentry). Результат кожного запиту —
   `ProfileResult`, його показує один `BlocListener`. Кнопка виходу — в заголовку.
@@ -144,7 +144,7 @@ lib/
 | `PasswordField` | [password_field.dart](../lib/core/widgets/password_field.dart) | `TextField` + кнопка «око» | `fl.PasswordBox` | вхід, реєстрація, профіль (теж `FormField`) |
 | `AppButton` (`primary/secondary/text/danger`), `AppIconButton` | [app_button.dart](../lib/core/widgets/app_button.dart) | `FilledButton` / `OutlinedButton` / `TextButton` | `fl.FilledButton` / `fl.Button` / `fl.HyperlinkButton` | всюди; `loading: true` — індикатор і неактивна кнопка |
 | `AppProgressIndicator` | [progress.dart](../lib/core/widgets/progress.dart) | `CircularProgressIndicator` | `fl.ProgressRing` | кнопки, заставка |
-| `showAvatarPicker`, `AvatarPresets` | [avatar_picker.dart](../lib/core/widgets/avatar_picker.dart) | `AlertDialog` | `fl.ContentDialog` | вибір фото профілю з 12 готових (DiceBear, HTTPS) |
+| `showProfilePhotoPicker` | [avatar_picker.dart](../lib/core/widgets/avatar_picker.dart) | нижня шторка Camera / Gallery / Remove photo | `fl.ContentDialog` із зоною «Drag an image here» | «Change photo» у профілі, як у макеті; завантаження власних фото — з хмарним сховищем, зараз працює лише видалення |
 | `AppCard` | [app_card.dart](../lib/core/widgets/app_card.dart) | Material `Card` з ripple | шар з рамкою, hover і фокус | картки, секції |
 | `AppSelectField` | [app_pickers.dart](../lib/core/widgets/app_pickers.dart) | `DropdownButtonFormField` | `fl.ComboBox` | водойма, вид риби, вітер |
 | `AppDateField`, `AppTimeField` | [app_pickers.dart](../lib/core/widgets/app_pickers.dart) | системні `showDatePicker` / `showTimePicker` | `fl.DatePicker` / `fl.TimePicker` | форма виїзду |
